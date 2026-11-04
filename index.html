@@ -1,0 +1,1287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Water Records Finder</title>
+<!--
+  East Palestine Memorial Public Library — Water Records Finder (PROTOTYPE)
+  IEEE Tech4Good 2026 · Project 26-T4G-227 · GenAI-Powered Environmental Health Literacy
+
+  This single file is a front-end model of the library kiosk. It loads NOTHING from the
+  network (no fonts, scripts, analytics or APIs) so it runs fully offline, matching NFR-1/NFR-2.
+  It stores nothing in cookies, localStorage or on disk; all counts live in memory and vanish
+  when the page is closed (FR-20, FR-21, Section 5.6).
+
+  Where the production system would call the local RAG pipeline (llama.cpp/Ollama + vector
+  store), this prototype uses a small keyword retriever over a FICTIONAL demo corpus. The
+  deterministic Tier-3 gate runs first, before any retrieval, exactly as FR-5 requires.
+
+  ALL sampling values, document titles and dates in DEMO_CORPUS are invented placeholders.
+  Federal MCL values are included as reference examples and must be verified against the
+  ingested copy of the U.S. EPA National Primary Drinking Water Regulations before use.
+  Health-effects text is intentionally absent: only ERP-approved ATSDR/IRIS fact cards,
+  shown verbatim, may fill those slots (FR-9, Section 5.1).
+-->
+<style>
+:root{
+  --fs:20px;
+  --bg:#f5f2ea;
+  --paper:#fffdf8;
+  --ink:#1c2830;
+  --ink-soft:#4a5761;
+  --line:#d9d2c3;
+  --brand:#0e5a61;
+  --brand-ink:#ffffff;
+  --brand-soft:#e2efee;
+  --t1:#0e5a61;   --t1-soft:#e2efee;
+  --t2:#8a5212;   --t2-soft:#f8ecd9;
+  --t3:#4b4a7a;   --t3-soft:#ebeaf5;
+  --flag:#7a4b00; --flag-soft:#fff3d6;
+  --cta:#b45f12;  --cta-ink:#ffffff;
+  --focus:#1a73e8;
+  --demo:#2b2b2b;
+  --radius:14px;
+  --shadow:0 1px 0 rgba(0,0,0,.04), 0 4px 18px rgba(28,40,48,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12191d; --paper:#1a2328; --ink:#e8eef0; --ink-soft:#a9b6bd; --line:#33424a;
+    --brand:#5fb8bf; --brand-ink:#0b1a1c; --brand-soft:#183236;
+    --t1:#6cc7cd; --t1-soft:#17302f; --t2:#e6a65a; --t2-soft:#33261a; --t3:#b4b0ea; --t3-soft:#25243a;
+    --flag:#f0c36a; --flag-soft:#2f2714; --cta:#d9822f; --cta-ink:#1a0f05; --focus:#7ab8ff; --demo:#05080a;
+    --shadow:none; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12191d; --paper:#1a2328; --ink:#e8eef0; --ink-soft:#a9b6bd; --line:#33424a;
+  --brand:#5fb8bf; --brand-ink:#0b1a1c; --brand-soft:#183236;
+  --t1:#6cc7cd; --t1-soft:#17302f; --t2:#e6a65a; --t2-soft:#33261a; --t3:#b4b0ea; --t3-soft:#25243a;
+  --flag:#f0c36a; --flag-soft:#2f2714; --cta:#d9822f; --cta-ink:#1a0f05; --focus:#7ab8ff; --demo:#05080a;
+  --shadow:none; color-scheme:dark;
+}
+:root[data-contrast="high"]{
+  color-scheme:dark;
+  --bg:#000; --paper:#0b0b0b; --ink:#ffffff; --ink-soft:#f0f0f0; --line:#ffffff;
+  --brand:#ffe14d; --brand-ink:#000; --brand-soft:#1a1a1a;
+  --t1:#7ff0ff; --t1-soft:#0b0b0b; --t2:#ffd27a; --t2-soft:#0b0b0b; --t3:#d7c8ff; --t3-soft:#0b0b0b;
+  --flag:#ffe14d; --flag-soft:#0b0b0b; --cta:#ffe14d; --cta-ink:#000; --focus:#7ff0ff; --demo:#ffe14d;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{font-size:var(--fs)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
+  line-height:1.5; -webkit-font-smoothing:antialiased; min-height:100vh; display:flex; flex-direction:column}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:4px solid var(--focus);outline-offset:3px}
+#main:focus,#main:focus-visible{outline:none}
+h1,h2,h3{line-height:1.2;margin:0 0 .5rem}
+h1{font-size:2rem;letter-spacing:-.01em}
+h2{font-size:1.45rem}
+h3{font-size:1.15rem}
+p{margin:.25rem 0 .75rem}
+.muted{color:var(--ink-soft)}
+.wrap{width:100%;max-width:1320px;margin:0 auto;padding:0 28px}
+
+/* demo strip */
+.demo-strip{background:var(--demo);color:#f4f4f4;font-size:.78rem;padding:6px 0;text-align:center;letter-spacing:.02em}
+:root[data-contrast="high"] .demo-strip{color:#000}
+
+/* top bar */
+.topbar{background:var(--paper);border-bottom:2px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;gap:20px;padding-top:14px;padding-bottom:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:14px;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.brand-mark{width:54px;height:54px;border-radius:12px;background:var(--brand);display:grid;place-items:center;flex:none}
+.brand-mark svg{width:32px;height:32px}
+.brand-name{font-weight:700;font-size:1.1rem;display:block}
+.brand-sub{font-size:.85rem;color:var(--ink-soft);display:block}
+.tools{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+.tool{min-height:56px;padding:0 18px;border-radius:12px;border:2px solid var(--line);background:var(--paper);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:8px}
+.tool[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-soft)}
+.tool svg{width:22px;height:22px}
+.size-group{display:flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.size-group button{min-height:52px;min-width:56px;border:0;background:var(--paper);cursor:pointer;font-weight:700}
+.size-group button + button{border-left:2px solid var(--line)}
+.size-group button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+
+/* banners */
+#banners:empty{display:none}
+.banner{display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-radius:12px;margin:14px 0 0;border:2px solid var(--flag);background:var(--flag-soft);color:var(--ink)}
+.banner strong{display:block}
+.banner.info{border-color:var(--brand);background:var(--brand-soft)}
+
+main{flex:1;padding:26px 0 30px}
+
+/* buttons */
+.btn{min-height:64px;padding:0 26px;border-radius:14px;border:2px solid transparent;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:10px;justify-content:center;text-align:center}
+.btn-primary{background:var(--brand);color:var(--brand-ink)}
+.btn-cta{background:var(--cta);color:var(--cta-ink)}
+.btn-ghost{background:var(--paper);border-color:var(--line)}
+.btn svg{width:24px;height:24px;flex:none}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+
+/* home */
+.home{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px}
+.card{background:var(--paper);border:2px solid var(--line);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow)}
+.search{display:flex;gap:12px;margin:18px 0 8px}
+.search input{flex:1;min-width:0;min-height:72px;border-radius:14px;border:3px solid var(--brand);padding:0 20px;font-size:1.15rem;background:var(--paper)}
+.search .btn{min-height:72px;font-size:1.1rem}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.chip{min-height:56px;padding:8px 18px;border-radius:999px;border:2px solid var(--line);background:var(--bg);cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--brand)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}
+.tile{min-height:120px;border-radius:var(--radius);border:2px solid var(--line);background:var(--paper);padding:18px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.tile:hover{border-color:var(--brand)}
+.tile .ic{width:40px;height:40px;border-radius:10px;background:var(--brand-soft);display:grid;place-items:center}
+.tile .ic svg{width:24px;height:24px;stroke:var(--brand)}
+.tile b{font-size:1.05rem}
+.tile span{font-size:.85rem;color:var(--ink-soft)}
+.cando h3{margin-top:.6rem}
+.cando ul{margin:.25rem 0 .5rem;padding-left:1.2rem}
+.cando li{margin:.25rem 0}
+.tier-legend{display:grid;gap:10px;margin-top:10px}
+.tier-legend div{display:flex;gap:10px;align-items:flex-start;font-size:.9rem}
+
+/* tier badge */
+.badge{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.85rem;padding:6px 12px;border-radius:999px;border:2px solid currentColor;white-space:nowrap}
+.badge.t1{color:var(--t1);background:var(--t1-soft)}
+.badge.t2{color:var(--t2);background:var(--t2-soft)}
+.badge.t3{color:var(--t3);background:var(--t3-soft)}
+.badge.none{color:var(--ink-soft);background:var(--paper)}
+
+/* answer */
+.asked{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin-bottom:16px}
+.asked q{font-size:1.25rem;font-weight:700}
+.answer-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.plain{border-left:8px solid var(--brand);background:var(--paper);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);border-top:2px solid var(--line);border-right:2px solid var(--line);border-bottom:2px solid var(--line)}
+.plain .lbl{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand)}
+.plain p{font-size:1.1rem}
+.plain ul{margin:.25rem 0;padding-left:1.2rem}
+.plain li{margin:.3rem 0;font-size:1.05rem}
+.result{background:var(--paper);border:2px solid var(--line);border-radius:var(--radius);margin-top:18px;overflow:hidden;box-shadow:var(--shadow)}
+.datebanner{background:var(--brand-soft);color:var(--ink);font-size:.85rem;font-weight:600;padding:10px 20px;border-bottom:2px solid var(--line)}
+.result-body{padding:18px 20px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0 12px}
+.cell{border:2px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg)}
+.cell .k{display:block;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft)}
+.cell .v{display:block;font-size:1.5rem;font-weight:700;margin:4px 0 2px}
+.cell .s{display:block;font-size:.85rem;color:var(--ink-soft)}
+details.verbatim{margin-top:6px}
+details.verbatim summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:600;color:var(--brand)}
+details.verbatim pre{white-space:pre-wrap;background:var(--bg);border:2px dashed var(--line);border-radius:10px;padding:12px 14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;margin:6px 0 0}
+.cite{border-top:2px solid var(--line);padding:12px 20px;font-size:.85rem;color:var(--ink-soft);background:var(--paper)}
+.cite b{color:var(--ink)}
+.flagbox{border:2px solid var(--flag);background:var(--flag-soft);border-radius:var(--radius);padding:16px 20px;margin-top:18px}
+.flagbox h3{color:var(--flag)}
+:root[data-contrast="high"] .flagbox h3{color:var(--flag)}
+.absent{border:2px dashed var(--ink-soft);border-radius:var(--radius);padding:16px 20px;margin-top:18px;background:var(--paper)}
+.side .card + .card{margin-top:16px}
+.side h3{font-size:1rem}
+.wordchips{display:flex;flex-wrap:wrap;gap:8px}
+.wordchip{min-height:48px;padding:6px 14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);cursor:pointer;font-weight:600}
+.tier-panel{border-radius:var(--radius);padding:20px 24px;border:2px solid}
+.tier-panel.t2{border-color:var(--t2);background:var(--t2-soft)}
+.tier-panel.t3{border-color:var(--t3);background:var(--t3-soft)}
+.tier-panel.none{border-color:var(--line);background:var(--paper)}
+.contacts{display:grid;gap:12px;margin:14px 0}
+.contact{background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:14px 18px}
+.contact b{display:block;font-size:1.05rem}
+.factcard{border:2px solid var(--t2);border-radius:12px;padding:14px 18px;background:var(--paper);margin-top:14px}
+.factcard .status{display:inline-block;font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;border:2px solid var(--t2);color:var(--t2)}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{text-align:left;padding:12px 12px;border-bottom:2px solid var(--line);vertical-align:top}
+th{font-size:.85rem;letter-spacing:.02em;color:var(--ink-soft)}
+th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inherit;letter-spacing:inherit;font-weight:700;color:var(--brand);text-decoration:underline;text-underline-offset:3px;min-height:40px}
+.table-wrap{overflow-x:auto;border:2px solid var(--line);border-radius:var(--radius);background:var(--paper)}
+
+.doclist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.doc{background:var(--paper);border:2px solid var(--line);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow)}
+.doc .meta{font-size:.85rem;color:var(--ink-soft)}
+.doc .btn{align-self:flex-start;margin-top:8px;min-height:56px}
+.pill{display:inline-block;font-size:.75rem;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--flag-soft);border:2px solid var(--flag);color:var(--flag)}
+
+.glossary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.term{background:var(--paper);border:2px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+.term h3{color:var(--brand)}
+.term .ex{font-size:.9rem;color:var(--ink-soft)}
+
+.back{margin-bottom:16px}
+
+/* footer action bar */
+.actionbar{position:sticky;bottom:0;background:var(--paper);border-top:3px solid var(--line);z-index:5}
+.actionbar .wrap{display:flex;gap:12px;align-items:center;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+.actionbar .btn-cta{font-size:1.05rem;flex:1 1 360px}
+.actionbar .btn-ghost{flex:0 1 auto}
+.footnote{width:100%;font-size:.78rem;color:var(--ink-soft);text-align:center;margin-top:2px}
+.staff-btn{min-height:56px;min-width:56px;border-radius:12px;border:2px dashed var(--line);background:transparent;cursor:pointer;font-size:.8rem;color:var(--ink-soft)}
+
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(15,22,28,.55);display:grid;place-items:center;z-index:50;padding:20px}
+.modal{background:var(--paper);border:2px solid var(--line);border-radius:18px;max-width:860px;width:100%;max-height:92vh;overflow:auto;padding:30px 34px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h2{font-size:1.6rem}
+.modal ul{padding-left:1.2rem}
+.modal li{margin:.4rem 0}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.choice-grid .btn{width:100%;min-height:76px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 0;border-bottom:2px solid var(--line)}
+.toggle-row:last-child{border-bottom:0}
+.switch{min-width:150px}
+.switch[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink)}
+.switch.danger[aria-pressed="true"]{background:#8b1e1e;color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.stat{border:2px solid var(--line);border-radius:12px;padding:10px 14px}
+.stat b{display:block;font-size:1.4rem}
+.stat span{font-size:.8rem;color:var(--ink-soft)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg button{min-height:52px;padding:0 14px;border-radius:10px;border:2px solid var(--line);background:var(--paper);cursor:pointer;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+
+/* emergency */
+.emergency{max-width:980px;margin:0 auto;text-align:left}
+.emergency .big{font-size:2.2rem;font-weight:800}
+.emergency .num{font-size:2.4rem;font-weight:800;color:var(--brand)}
+
+/* print preview (shared-link mode) */
+.sheet-preview{background:#fff;color:#111;border:2px solid var(--line);border-radius:10px;padding:22px 26px;margin-top:12px;font-size:.9rem;overflow-x:auto}
+.sheet-preview h1{font-size:1.4rem}
+.sheet-preview h2{font-size:1.1rem;margin-top:14px}
+.sheet-preview th{color:#333}
+.sheet-preview th,.sheet-preview td{border-bottom:1px solid #bbb;padding:6px}
+.sheet-preview .pbox{border:1.5px solid #111;padding:8px 12px;margin:10px 0;border-radius:4px}
+.sheet-preview .disc{border-top:1.5px solid #111;margin-top:14px;padding-top:8px;font-size:.8rem}
+.sheet-preview .lines div{border-bottom:1px solid #111;height:26px}
+
+/* print */
+#print-area{display:none}
+@media print{
+  html,body{background:#fff !important}
+  body > *:not(#print-area){display:none !important}
+  #print-area, #print-area *{color:#000 !important;background:transparent !important}
+  #print-area{display:block;color:#000;font-size:12pt;font-family:Arial,Helvetica,sans-serif}
+  #print-area h1{font-size:18pt}
+  #print-area h2{font-size:14pt;margin-top:14pt}
+  #print-area .pbox{border:1.5pt solid #000;padding:8pt 10pt;margin:8pt 0}
+  #print-area .disc{border-top:1.5pt solid #000;margin-top:16pt;padding-top:8pt;font-size:9.5pt}
+  #print-area table{font-size:10pt}
+  #print-area th,#print-area td{border-bottom:1pt solid #999;padding:4pt}
+  #print-area .lines div{border-bottom:1pt solid #000;height:22pt}
+}
+
+@media (max-width:1000px){
+  .home,.answer-grid{grid-template-columns:minmax(0,1fr)}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .doclist,.glossary{grid-template-columns:1fr}
+}
+@media (max-width:620px){
+  .wrap{padding:0 16px}
+  h1{font-size:1.6rem}
+  .search{flex-direction:column}
+  .pair,.choice-grid,.stats{grid-template-columns:1fr}
+  .tiles{grid-template-columns:1fr}
+  .tools{margin-left:0}
+  .actionbar{position:static}
+  .actionbar .btn{min-height:56px;flex:1 1 45%;padding:0 12px}
+  .actionbar .btn-cta{flex-basis:100%}
+  .tool{padding:0 12px}
+}
+@media (prefers-reduced-motion:no-preference){
+  .tile,.chip,.btn{transition:border-color .15s, transform .1s}
+  .btn:active,.tile:active,.chip:active{transform:scale(.98)}
+}
+</style>
+</head>
+<body>
+
+<div class="demo-strip" role="note">PROTOTYPE FOR DESIGN REVIEW · All test results, documents and contact slots shown are fictional placeholders · Not for public use until the release gate and Expert Review Panel sign-off are complete</div>
+
+<header class="topbar">
+  <div class="wrap">
+    <button class="brand" id="homeBtn" aria-label="Go to start screen">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4c4.5 6 8 10.4 8 14.5A8 8 0 0 1 8 18.5C8 14.4 11.5 10 16 4z"/><path d="M12 19.5h8M12 23h6"/></svg>
+      </span>
+      <span>
+        <span class="brand-name">Water Records Finder</span>
+        <span class="brand-sub">East Palestine Memorial Public Library</span>
+      </span>
+    </button>
+    <div class="tools" role="toolbar" aria-label="Display options">
+      <div class="size-group" role="group" aria-label="Text size">
+        <button data-size="20" aria-pressed="true" aria-label="Normal text">A</button>
+        <button data-size="24" aria-pressed="false" aria-label="Large text" style="font-size:1.15em">A</button>
+        <button data-size="28" aria-pressed="false" aria-label="Extra large text" style="font-size:1.35em">A</button>
+      </div>
+      <button class="tool" id="contrastBtn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/></svg>
+        High contrast
+      </button>
+      <button class="tool" id="readBtn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+        <span>Read aloud</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="banners" aria-live="polite"></div>
+
+<main>
+  <div class="wrap" id="main" tabindex="-1" aria-live="polite"></div>
+</main>
+
+<footer class="actionbar">
+  <div class="wrap">
+    <button class="btn btn-cta" id="printTalkBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>
+      Print this and talk to a librarian
+    </button>
+    <button class="btn btn-ghost" id="reportBtn">Report a problem</button>
+    <button class="btn btn-ghost" id="limitsBtn">Known limitations</button>
+    <button class="btn btn-ghost" id="endBtn">End session</button>
+    <button class="staff-btn" id="staffBtn" title="Library staff controls">Staff</button>
+    <p class="footnote">This kiosk finds and shows official documents. It does not give medical, legal, safety or engineering advice. Nothing you type is saved.</p>
+  </div>
+</footer>
+
+<div id="modal-root"></div>
+<div id="print-area" aria-hidden="true"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   1. DEMO CORPUS  (fictional — replaced by the signed, versioned corpus at ingestion)
+   ========================================================================= */
+const CORPUS_VERSION = "demo-0.1";
+const CORPUS_UPDATED = "2026-10-01";           // date of last signed refresh (FR-18/19)
+
+const DOCS = {
+  D1:{title:"[DEMO] Village Public Water System — Treated Water Sampling Summary", agency:"U.S. EPA (placeholder)", published:"2026-08-14", cadenceDays:90, shelf:"Reference binder · Tab 1", link:"epa.gov/east-palestine-oh-train-derailment/water-sampling-data", kind:"Sampling results table", about:"treated tap water from the village public water system"},
+  D5:{title:"[DEMO] Public Water System Confirmation Sampling Report", agency:"Ohio EPA (placeholder)", published:"2026-08-20", cadenceDays:90, shelf:"Reference binder · Tab 1", link:"(link recorded at ingestion)", kind:"Sampling results table", about:"a second agency's tests of the same village tap water"},
+  D2:{title:"[DEMO] Private Well Sampling Results — Area North", agency:"Columbiana County Health District (placeholder)", published:"2026-09-02", cadenceDays:90, shelf:"Reference binder · Tab 2", link:"(link recorded at ingestion)", kind:"Sampling results table", about:"private drinking-water wells in the north part of the area"},
+  D3:{title:"[DEMO] Private Well Sampling Results — Area South", agency:"Columbiana County Health District (placeholder)", published:"2026-04-10", cadenceDays:90, shelf:"Reference binder · Tab 2", link:"(link recorded at ingestion)", kind:"Sampling results table", about:"private drinking-water wells in the south part of the area"},
+  D4:{title:"[DEMO] Stream Water Monitoring — Sites 1 and 2", agency:"Ohio EPA (placeholder)", published:"2026-09-15", cadenceDays:90, shelf:"Reference binder · Tab 3", link:"(link recorded at ingestion)", kind:"Sampling results table", about:"water from two local streams (not drinking water)"},
+  D6:{title:"National Primary Drinking Water Regulations — limits table (corpus copy)", agency:"U.S. EPA", published:"2025-01-01", cadenceDays:1825, shelf:"Reference binder · Tab 5", link:"epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations", kind:"Federal standards", about:"the legal limits for chemicals in public drinking water", note:"Publication date is a demo placeholder; record the real date at ingestion and verify every value."},
+  D7:{title:"[DEMO] Project Word List (draft)", agency:"Prepared for Expert Review Panel approval", published:"2026-10-01", cadenceDays:365, shelf:"Reference binder · Tab 6", link:"(kiosk only)", kind:"Glossary", about:"plain-language definitions of words used in test reports"}
+};
+
+const LOCATIONS = {
+  village:{name:"Village public water system (treated tap water)", short:"village tap water", drinking:true, kind:"public",
+           aliases:["village water","city water","public water","tap water","municipal","town water","treated water","public water system","village","faucet"]},
+  north:{name:"Private wells — Area North", short:"private wells, Area North", drinking:true, kind:"well",
+         aliases:["area north","north wells","northern wells","north area","north"]},
+  south:{name:"Private wells — Area South", short:"private wells, Area South", drinking:true, kind:"well",
+         aliases:["area south","south wells","southern wells","south area","south"]},
+  s1:{name:"Stream Site 1 — downstream", short:"Stream Site 1 (downstream)", drinking:false, kind:"stream",
+      aliases:["stream site 1","site 1","downstream"]},
+  s2:{name:"Stream Site 2 — upstream", short:"Stream Site 2 (upstream)", drinking:false, kind:"stream",
+      aliases:["stream site 2","site 2","upstream"]}
+};
+const LOCATION_GROUPS = [
+  {aliases:["private wells","private well","wells","well water","well"], ids:["north","south"]},
+  {aliases:["streams","stream","creeks","creek","surface water"], ids:["s1","s2"]}
+];
+
+/* MCL values in µg/L. Reference examples — verify against corpus copy of D6 before use. */
+const ANALYTES = {
+  vc:{name:"Vinyl chloride", cas:"75-01-4", aliases:["vinyl chloride","chloroethene","chloroethylene","vinylchloride"], mcl:2, mclText:"0.002 mg/L", group:"VOC"},
+  ba:{name:"Butyl acrylate", cas:"141-32-2", aliases:["n-butyl acrylate","butyl acrylate","butylacrylate"], mcl:null, group:"VOC"},
+  eha:{name:"2-Ethylhexyl acrylate", cas:"103-11-7", aliases:["2-ethylhexyl acrylate","ethylhexyl acrylate","ethyl hexyl acrylate"], mcl:null, group:"SVOC"},
+  eb:{name:"Ethylbenzene", cas:"100-41-4", aliases:["ethylbenzene","ethyl benzene"], mcl:700, mclText:"0.7 mg/L", group:"VOC"},
+  bz:{name:"Benzene", cas:"71-43-2", aliases:["benzene"], mcl:5, mclText:"0.005 mg/L", group:"VOC"},
+  tol:{name:"Toluene", cas:"108-88-3", aliases:["toluene"], mcl:1000, mclText:"1 mg/L", group:"VOC"},
+  xyl:{name:"Xylenes (total)", cas:"1330-20-7", aliases:["xylenes","xylene"], mcl:10000, mclText:"10 mg/L", group:"VOC"},
+  dca:{name:"1,2-Dichloroethane", cas:"107-06-2", aliases:["1,2-dichloroethane","dichloroethane","ethylene dichloride"], mcl:5, mclText:"0.005 mg/L", group:"VOC"},
+  dx:{name:"Dioxin (2,3,7,8-TCDD)", cas:"1746-01-6", aliases:["2,3,7,8-tcdd","dioxins","dioxin","tcdd"], mcl:0.00003, mclText:"0.00000003 mg/L (30 picograms per liter)", group:"Dioxin"}
+};
+const ACRYLATE_GROUP = {aliases:["acrylates","acrylate"], ids:["ba","eha"]};
+
+/* Things residents commonly ask about that are NOT in this demo corpus → FR-12 "We don't have data on that". */
+const KNOWN_ABSENT = ["lead","arsenic","pfas","pfoa","pfos","nitrate","nitrite","bacteria","coliform","e. coli","radon","mercury","copper","fluoride","manganese","iron","chlorine","hardness","glycol","isobutylene","phosgene","hydrogen chloride","soil","air"];
+
+/* Records — FICTIONAL values. `raw` mimics the row as printed in the source so it can be shown verbatim. */
+const RECORDS = [
+  {doc:"D1", loc:"village", an:"vc",  date:"2026-07-15", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D1", loc:"village", an:"vc",  date:"2026-04-14", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D1", loc:"village", an:"ba",  date:"2026-07-15", detected:false, value:null, rl:1.0, unit:"µg/L"},
+  {doc:"D1", loc:"village", an:"bz",  date:"2026-07-15", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D1", loc:"village", an:"dca", date:"2026-07-15", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D5", loc:"village", an:"vc",  date:"2026-07-15", detected:true,  value:0.3, estimated:true, rl:0.5, unit:"µg/L"},
+  {doc:"D2", loc:"north",   an:"vc",  date:"2026-08-05", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D2", loc:"north",   an:"ba",  date:"2026-08-05", detected:false, value:null, rl:1.0, unit:"µg/L"},
+  {doc:"D2", loc:"north",   an:"bz",  date:"2026-08-05", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D2", loc:"north",   an:"tol", date:"2026-08-05", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D3", loc:"south",   an:"vc",  date:"2026-03-18", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D3", loc:"south",   an:"eha", date:"2026-03-18", detected:false, value:null, rl:2.0, unit:"µg/L"},
+  {doc:"D3", loc:"south",   an:"tol", date:"2026-03-18", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D4", loc:"s1",      an:"vc",  date:"2026-08-27", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D4", loc:"s1",      an:"ba",  date:"2026-08-27", detected:false, value:null, rl:1.0, unit:"µg/L"},
+  {doc:"D4", loc:"s1",      an:"tol", date:"2026-08-27", detected:true,  value:0.8, rl:0.5, unit:"µg/L"},
+  {doc:"D4", loc:"s1",      an:"eb",  date:"2026-08-27", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D4", loc:"s2",      an:"vc",  date:"2026-08-27", detected:false, value:null, rl:0.5, unit:"µg/L"},
+  {doc:"D4", loc:"s2",      an:"tol", date:"2026-08-27", detected:false, value:null, rl:0.5, unit:"µg/L"}
+];
+RECORDS.forEach((r,i)=>{
+  r.id = "R"+(i+1);
+  const a = ANALYTES[r.an];
+  const res = r.detected ? (r.value + (r.estimated?" J":"")) : "ND";
+  r.raw = `${a.name.toUpperCase()} | CAS ${a.cas} | Result: ${res} | RL: ${r.rl} | Units: ug/L | Collected: ${usDate(r.date)} | Matrix: ${LOCATIONS[r.loc].kind==="stream"?"Surface water":"Drinking water"}`;
+});
+
+/* Glossary (plain-language, 6th–8th grade target; awaiting ERP approval). */
+const GLOSSARY = [
+  {id:"mcl", term:"MCL (Maximum Contaminant Level)", match:["mcl","maximum contaminant level","limit","legal limit","standard"],
+   def:"The highest amount of a chemical that U.S. EPA allows in public drinking water. It is a legal limit for water systems that serve the public.",
+   ex:"Private wells and streams are not covered by MCLs. The kiosk may show an MCL next to those results only so you can see the number."},
+  {id:"mclg", term:"MCLG (goal level)", match:["mclg","goal level","contaminant level goal"],
+   def:"A goal number EPA sets alongside each MCL. It is not a legal limit. For some chemicals the goal is set at zero.",
+   ex:"The MCL is the number water systems must meet. The MCLG is the goal."},
+  {id:"ugl", term:"µg/L (micrograms per liter)", match:["µg/l","ug/l","microgram","micrograms per liter","ppb","parts per billion"],
+   def:"A way to measure very small amounts. 1 µg/L means one millionth of a gram of a chemical in one liter of water. In water, 1 µg/L is the same as 1 part per billion (ppb).",
+   ex:"A liter is a little more than a quart."},
+  {id:"mgl", term:"mg/L (milligrams per liter)", match:["mg/l","milligram","milligrams per liter","ppm","parts per million"],
+   def:"One thousandth of a gram in one liter of water. 1 mg/L equals 1,000 µg/L. In water, 1 mg/L is the same as 1 part per million (ppm).",
+   ex:"Limits are often printed in mg/L while results are printed in µg/L. The kiosk converts so both use the same unit."},
+  {id:"nd", term:"ND (Not detected)", match:["not detected","non-detect","nondetect","non detect","\\bnd\\b","undetected"],
+   def:"The lab looked for the chemical and did not find it at or above the smallest amount its test can reliably measure.",
+   ex:"“Not detected” is about what the test could measure. See “Reporting limit.”"},
+  {id:"rl", term:"Reporting limit (RL)", match:["reporting limit","detection limit","\\brl\\b","\\bmdl\\b","limit of detection","quantitation"],
+   def:"The smallest amount of a chemical a lab's test can reliably report. If a result is “ND” with an RL of 0.5 µg/L, the test did not find 0.5 µg/L or more.",
+   ex:"Different labs and tests can have different reporting limits."},
+  {id:"j", term:"J (estimated value)", match:["j flag","j-flag","estimated value","estimated","qualifier","\\bj\\b"],
+   def:"A letter labs put next to a number when the chemical was found but the amount is below what the test can measure exactly. The number is an estimate.",
+   ex:"Example: “0.3 J” means about 0.3, but not an exact amount."},
+  {id:"sampledate", term:"Sample date vs. published date", match:["sample date","sampling date","collected","published date","publication date","corpus updated"],
+   def:"The sample date is when the water was collected. The published date is when an agency released the report. “Corpus updated” is when the library last loaded new documents into this kiosk.",
+   ex:"A report published in August can describe water collected in July."},
+  {id:"treated", term:"Treated (finished) water", match:["finished water","treated water","finished"],
+   def:"Water from a public water system after it has gone through the treatment plant, on its way to homes.",
+   ex:"Results for raw water (before treatment) and treated water are reported separately."},
+  {id:"well", term:"Private well", match:["private well"],
+   def:"A well that supplies water to a home or small property and is not part of a public water system.",
+   ex:"Ask a librarian about the Columbiana County Health District's free private-well testing program."},
+  {id:"surface", term:"Surface water", match:["surface water"],
+   def:"Water in streams, creeks, ponds and lakes. Stream samples are not drinking water samples.",
+   ex:"Drinking-water limits (MCLs) are written for public tap water, not streams."},
+  {id:"voc", term:"VOC (volatile organic compound)", match:["voc","volatile organic"],
+   def:"A group of chemicals that turn into vapor easily. Vinyl chloride, benzene and toluene are VOCs.",
+   ex:"Labs often test for many VOCs at once using one method."},
+  {id:"analyte", term:"Analyte", match:["analyte","parameter"],
+   def:"The chemical a lab is testing for.",
+   ex:"In a results table, the analyte column lists chemical names."},
+  {id:"cas", term:"CAS number", match:["cas number","cas","cas #"],
+   def:"An ID number given to each chemical so it can be identified without confusion, even if it has several names.",
+   ex:"Vinyl chloride's CAS number is 75-01-4."}
+];
+
+/* Tier-3 referral cards. Contact details are slots for library staff to fill and verify. */
+const SLOT = "Contact details: to be confirmed by library staff";
+const TIER3 = [
+  {id:"injection", label:"instructions to change how this kiosk works",
+   test:/\b(ignore|disregard|forget)\b.{0,30}\b(instruction|rule|previous|prior|above|system)|system prompt|\byou are now\b|pretend (to be|you)|jailbreak|developer mode|\bact as\b|role ?play|override|\bdan mode\b/,
+   why:"This kiosk only looks up official water test documents. It can't change its rules.",
+   contacts:[{n:"Ask a question about water test records",d:"For example: “vinyl chloride in village tap water.”"}]},
+  {id:"legal", label:"settlements, claims or legal matters",
+   test:/settle|lawsuit|\bsue\b|\bsuing\b|\bclaims?\b|attorney|lawyer|\blegal\b|\bcourt\b|compensat|pay ?out|class action|eligib|deadline|liabil|reimburs/,
+   why:"The kiosk takes no position on any legal matter and can't answer questions about eligibility, deadlines, amounts or strategy.",
+   contacts:[{n:"The settlement administrator",d:SLOT},{n:"Your own lawyer",d:"A librarian can help you find legal-aid directories."}]},
+  {id:"medical", label:"medical questions, symptoms or health screening",
+   test:/symptom|\bsick\b|\bill\b|illness|disease|\brash|headache|cough|nause|vomit|diagnos|doctor|\bmedic|blood test|urine|\bscreen(ing)?\b|my (child|kid|kids|baby|son|daughter|health|body)|pregnan|breathing|asthma|treatment|hospital/,
+   why:"Only a health professional who knows you can answer medical questions.",
+   contacts:[{n:"Your doctor or health care provider",d:"Bring this card and any test results you have."},{n:"Ohio Department of Health",d:SLOT}]},
+  {id:"risk", label:"personal cancer risk or exposure estimates",
+   test:/cancer|tumou?r|\brisk|\bdoses?\b|exposure|exposed|how much (did|have|has) (i|we|my)|chance of|likely to get|long[- ]term effect/,
+   why:"The kiosk can't estimate anyone's personal risk or how much of a chemical a person took in.",
+   contacts:[{n:"Your doctor or health care provider",d:"They can talk with you about your own health."},{n:"NIEHS and ATSDR materials",d:"A librarian can help you find these published resources."}]},
+  {id:"cause", label:"what caused something",
+   test:/\bcaus(e|ed|es|ing)\b|because of the|did the (train|derail|spill|burn|fire|crash)|\bblame|\bfault\b|responsible for|due to the (train|derail|spill)|from the (train|derail)/,
+   why:"The kiosk reports what was measured. It doesn't say what caused anything or whether anyone caused harm.",
+   contacts:[{n:"Your doctor or health care provider",d:"For questions about your own health."},{n:"Published research",d:"A librarian can show you research studies, presented as research."}]},
+  {id:"property", label:"property value, insurance or moving",
+   test:/property|home value|house value|resale|insur|relocat|move away|moving away|sell (my|our|the) (house|home)|mortgage|real estate|appraisal/,
+   why:"These questions are outside what this kiosk covers.",
+   contacts:[{n:"An appropriate professional",d:"For example, a real estate professional, insurance agent or financial counselor."}]},
+  {id:"safety", label:"whether water is safe for you",
+   test:/\bsafe\b|unsafe|safety|ok(ay)? to (drink|use|bathe|shower|cook|swim|fish)|can (i|we|my) (drink|use|bathe|shower|cook|swim|fish)|should (i|we) (drink|use|bathe|shower|cook|filter|buy|worry)|drinkable|dangerous|harmful|toxic|poison|contaminated|hazard/,
+   why:"The kiosk can't tell you whether your water is safe. It can show what was measured and the published limits.",
+   contacts:[{n:"Columbiana County Health District — free private-well testing program",d:SLOT},{n:"A librarian",d:"Staff can help you find test results for your area and walk through them with you."}]}
+];
+
+const TIER2 = /what does (this|that|it|the result|my result|the number|this number) mean|mean for (me|us|my|our)|\bcompare|comparison|\bvs\.?\b|versus|trend|over time|getting (better|worse)|\bhigh\b|\blow\b|higher|lower|normal|worse|better|\bworr|concern|scared|afraid|anxious|interpret|explain (the|my|this|these) result|should i be|is that (a lot|much|bad|good|ok)|\bbad\b|\bgood\b|health effect|effects? of|what does .{2,40} do to|enough to|above the limit|below the limit|over the limit|under the limit/;
+
+const EMOTION = /\bworr|scared|afraid|anxious|frighten|nervous|upset/;
+
+/* =========================================================================
+   2. STATE (memory only — nothing persisted)
+   ========================================================================= */
+const state = {
+  acknowledged:false,
+  view:"home",
+  printable:null,
+  qaEnabled:true,          // FR-16 kill switch
+  emergency:false,         // FR-17
+  staffed:true,            // FR-22
+  simDays:null,            // staff simulation of days since signed refresh (null = real date)
+  counts:{sessions:0, t1:0, t2:0, t3:0, noAnswer:0, reports:{}},
+  idleTimer:null
+};
+
+/* =========================================================================
+   3. UTILITIES
+   ========================================================================= */
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function parseD(s){const [y,m,d]=s.split("-").map(Number);return new Date(Date.UTC(y,m-1,d));}
+function longDate(s){return parseD(s).toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric",timeZone:"UTC"});}
+function usDate(s){const [y,m,d]=s.split("-");return `${m}/${d}/${y}`;}
+function todayUTC(){const n=new Date();return new Date(Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()));}
+function daysBetween(a,b){return Math.round((b-a)/86400000);}
+function fmtNum(n){ if(n===null||n===undefined) return "—"; if(n<0.001) return n.toFixed(5).replace(/0+$/,""); return n.toLocaleString("en-US",{maximumFractionDigits:3}); }
+function $(sel,root=document){return root.querySelector(sel);}
+function daysSinceRefresh(){ return state.simDays!==null ? state.simDays : daysBetween(parseD(CORPUS_UPDATED), todayUTC()); }
+function sunset(){ return daysSinceRefresh() >= 180; }   // FR-19
+function docStaleDays(docId){ const d=DOCS[docId]; const due=parseD(d.published).getTime()+d.cadenceDays*86400000; return daysBetween(new Date(due), todayUTC()); }
+function docIsStale(docId){ return docStaleDays(docId) > 90; } // FR-18
+
+/* =========================================================================
+   4. SAFETY GATE + RETRIEVAL  (deterministic; runs before anything generative)
+   ========================================================================= */
+function normalize(q){ return " " + q.toLowerCase().replace(/[“”"']/g,"").replace(/\s+/g," ").trim() + " "; }
+
+function tier3Gate(t){ for(const c of TIER3){ if(c.test.test(t)) return c; } return null; }
+
+function matchAliases(text, table){
+  // longest alias first; consume matches so "ethylbenzene" doesn't also match "benzene"
+  let t = text; const found = new Set();
+  const list = [];
+  for(const [id,obj] of Object.entries(table)) for(const a of obj.aliases) list.push({id,a});
+  list.sort((x,y)=>y.a.length-x.a.length);
+  for(const {id,a} of list){ if(t.includes(a)){ found.add(id); t = t.split(a).join(" "); } }
+  return {found:[...found], rest:t};
+}
+function findAnalytes(t){
+  let {found,rest} = matchAliases(t, ANALYTES);
+  if(ACRYLATE_GROUP.aliases.some(a=>rest.includes(a))) ACRYLATE_GROUP.ids.forEach(i=>{ if(!found.includes(i)) found.push(i); });
+  return found;
+}
+function findLocations(t){
+  let {found,rest} = matchAliases(t, LOCATIONS);
+  for(const g of LOCATION_GROUPS){ if(!g.ids.some(i=>found.includes(i)) && g.aliases.some(a=>rest.includes(a))){ g.ids.forEach(i=>{ if(!found.includes(i)) found.push(i); }); } }
+  return found;
+}
+function findGlossary(t){
+  return GLOSSARY.filter(g=>g.match.some(m=> m.startsWith("\\b") ? new RegExp(m).test(t) : t.includes(m)));
+}
+function findAbsent(t){ return KNOWN_ABSENT.filter(w=>new RegExp("\\b"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(t)); }
+
+function retrieve(t){
+  const analytes = findAnalytes(t);
+  const locations = findLocations(t);
+  const absent = findAbsent(t);
+  const wantsLimits = /\blimit|standard|\bmcl\b|regulat|threshold|allowed/.test(t);
+  const wantsDocs = /\bdocument|report|\blist\b|everything|all (the )?(data|results|records)/.test(t);
+  let recs = RECORDS.filter(r => (!analytes.length || analytes.includes(r.an)) && (!locations.length || locations.includes(r.loc)));
+  if(!analytes.length && !locations.length) recs = [];
+  // relevance score (stand-in for the vector-similarity threshold in FR-2)
+  const score = analytes.length*2 + locations.length*1.5 + (wantsLimits?1:0);
+  return {analytes, locations, absent, wantsLimits, wantsDocs, recs, score};
+}
+const RELEVANCE_THRESHOLD = 1;
+
+/* =========================================================================
+   5. ROUTER
+   ========================================================================= */
+function ask(q){
+  q = (q||"").trim();
+  if(!q) return;
+  if(state.emergency) return renderEmergency();
+  if(!qaAvailable()) return renderPaused();
+  const t = normalize(q);
+
+  // Tier 3 gate — first, always, no retrieval performed.
+  const blocked = tier3Gate(t);
+  if(blocked){ state.counts.t3++; return renderTier3(q, blocked); }
+
+  // Glossary definitions (Tier 1)
+  const defIntent = /what (is|are|does)|\bmean|define|definition|stand for|meaning/.test(t);
+  const terms = findGlossary(t);
+  const r = retrieve(t);
+  if(defIntent && terms.length && !TIER2.test(t.replace(/what does .* mean/,""))){
+    if(!r.analytes.length && !r.locations.length){ state.counts.t1++; return renderGlossaryAnswer(q, terms); }
+  }
+
+  // Tier 2 — interpret / compare / advise → Reference Sheet for a librarian
+  if(TIER2.test(t)){ state.counts.t2++; return renderTier2(q, r, t); }
+
+  // Tier 1 retrieval
+  if(r.score >= RELEVANCE_THRESHOLD || r.wantsLimits){ state.counts.t1++; return renderTier1(q, r); }
+  if(terms.length){ state.counts.t1++; return renderGlossaryAnswer(q, terms); }
+  if(r.absent.length){ state.counts.t1++; return renderAbsent(q, r.absent); }
+  if(r.wantsDocs){ return renderDocs(); }
+  state.counts.noAnswer++;
+  return renderNoAnswer(q);
+}
+
+function qaAvailable(){ return state.qaEnabled && state.staffed && !sunset(); }
+
+/* =========================================================================
+   6. RENDER HELPERS
+   ========================================================================= */
+const ICONS = {
+  tap:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9a3 3 0 0 1 3 3v2"/><path d="M4 5v6M16 16c0 1.5-1 3-1 3s-1-1.5-1-3a1 1 0 0 1 2 0z"/></svg>',
+  well:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h14M6 10v10h12V10M4 6l8-3 8 3M12 10v5"/></svg>',
+  stream:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 8c3-2 6 2 9 0s6-2 9 0M3 13c3-2 6 2 9 0s6-2 9 0M3 18c3-2 6 2 9 0s6-2 9 0"/></svg>',
+  limit:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 20h16M7 20V10M12 20V5M17 20v-7M3 8h18" stroke-dasharray="0"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z"/><path d="M8 7h7M8 11h5"/></svg>',
+  docs:'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/></svg>'
+};
+
+function setMain(html, printable){
+  stopSpeech();
+  $("#main").innerHTML = html;
+  state.printable = printable || null;
+  $("#main").focus({preventScroll:true});
+  window.scrollTo({top:0});
+  renderBanners();
+}
+
+function backBtn(){ return `<button class="btn btn-ghost back" data-act="home">← Start over</button>`; }
+
+function dateBanner(rec){
+  const d = DOCS[rec.doc];
+  return `<div class="datebanner">Source published ${longDate(d.published)} · Sample collected ${longDate(rec.date)} · Corpus updated ${longDate(CORPUS_UPDATED)}</div>`;
+}
+function citation(docId){
+  const d = DOCS[docId];
+  // FR-3: no citation → nothing displayed
+  if(!d || !d.title || !d.agency || !d.published || !(d.link||d.shelf)) return null;
+  return `<div class="cite"><b>Source:</b> ${esc(d.title)} · <b>Agency:</b> ${esc(d.agency)} · <b>Published:</b> ${longDate(d.published)}<br><b>Find it:</b> ${esc(d.shelf)} · ${esc(d.link)}${d.note?`<br><i>${esc(d.note)}</i>`:""}</div>`;
+}
+
+function resultSentence(rec){
+  const a = ANALYTES[rec.an], L = LOCATIONS[rec.loc];
+  let s = `On ${longDate(rec.date)}, water from <b>${esc(L.short)}</b> was tested for <b>${esc(a.name.toLowerCase())}</b>. `;
+  if(!rec.detected) s += `The lab did <b>not detect</b> it. This test can measure amounts as small as ${fmtNum(rec.rl)} µg/L.`;
+  else if(rec.estimated) s += `The lab reported <b>about ${fmtNum(rec.value)} µg/L</b>. The letter “J” means this number is an estimate.`;
+  else s += `The lab reported <b>${fmtNum(rec.value)} µg/L</b>.`;
+  return s;
+}
+function limitCell(rec){
+  const a = ANALYTES[rec.an], L = LOCATIONS[rec.loc];
+  if(a.mcl===null) return `<div class="cell"><span class="k">Published federal limit</span><span class="v">None</span><span class="s">U.S. EPA has not set a drinking-water limit (MCL) for this chemical.</span></div>`;
+  let sub = L.kind==="public" ? "Federal limit (MCL) for public drinking water" :
+            L.kind==="well" ? "Federal limit (MCL) for public water systems. Private wells are not regulated by MCLs; shown for reference." :
+            "Federal limit (MCL) for public drinking water. Stream water is not drinking water; shown for reference.";
+  return `<div class="cell"><span class="k">Published limit (MCL)</span><span class="v">${fmtNum(a.mcl)} µg/L</span><span class="s">${sub}</span></div>`;
+}
+function resultCard(rec){
+  const cite = citation(rec.doc);
+  if(!cite) return "";   // FR-3 enforcement
+  const a = ANALYTES[rec.an], L = LOCATIONS[rec.loc];
+  const resV = rec.detected ? `${fmtNum(rec.value)} µg/L${rec.estimated?" (J)":""}` : "Not detected";
+  const resS = rec.detected ? (rec.estimated?"Estimated amount — see “J” in the word list":"Amount the lab reported") : `Lab can measure down to ${fmtNum(rec.rl)} µg/L`;
+  const stale = docIsStale(rec.doc) ? `<div class="banner" style="margin:0 0 12px"><div><strong>This document may be out of date.</strong>It is more than 90 days past its expected update. Ask a librarian whether a newer report exists.</div></div>` : "";
+  return `<article class="result">
+    ${dateBanner(rec)}
+    <div class="result-body">
+      ${stale}
+      <h3>${esc(a.name)} · ${esc(L.name)}</h3>
+      <div class="pair">
+        <div class="cell"><span class="k">Lab result</span><span class="v">${resV}</span><span class="s">${resS}</span></div>
+        ${limitCell(rec)}
+      </div>
+      <p>${resultSentence(rec)}</p>
+      <details class="verbatim"><summary>Show the exact row from the document</summary><pre>${esc(rec.raw)}</pre></details>
+    </div>
+    ${cite}
+  </article>`;
+}
+
+function conflictsIn(recs){
+  const groups = {};
+  recs.forEach(r=>{ const k=r.loc+"|"+r.an+"|"+r.date; (groups[k]=groups[k]||[]).push(r); });
+  return Object.values(groups).filter(g=>{
+    if(new Set(g.map(r=>r.doc)).size<2) return false;
+    return new Set(g.map(r=>r.detected?("D"+r.value):"ND")).size>1;
+  });
+}
+function conflictBox(group){
+  const a = ANALYTES[group[0].an], L = LOCATIONS[group[0].loc];
+  const rows = group.map(r=>`<li><b>${esc(DOCS[r.doc].agency)}</b> reported <b>${r.detected?fmtNum(r.value)+" µg/L"+(r.estimated?" (J, estimated)":""):"not detected"}</b> — ${esc(DOCS[r.doc].title)}</li>`).join("");
+  return `<div class="flagbox" role="note">
+    <h3>Two sources report different results</h3>
+    <p>For <b>${esc(a.name.toLowerCase())}</b> in <b>${esc(L.short)}</b> on ${longDate(group[0].date)}, the documents don't match:</p>
+    <ul>${rows}</ul>
+    <p>The kiosk shows both and does not decide which is right. This has been marked for a librarian to review with you.</p>
+  </div>`;
+}
+
+function wordChips(ids){
+  const list = GLOSSARY.filter(g=>ids.includes(g.id));
+  if(!list.length) return "";
+  return `<div class="card"><h3>Words on this page</h3><p class="muted" style="font-size:.85rem">Tap a word to see what it means.</p><div class="wordchips">${list.map(g=>`<button class="wordchip" data-term="${g.id}">${esc(g.term.split(" (")[0])}</button>`).join("")}</div></div>`;
+}
+function sidePanel(ids, extra=""){
+  return `<aside class="side">
+    ${extra}
+    ${wordChips(ids)}
+    <div class="card"><h3>Need help with this?</h3><p style="font-size:.95rem">Print this page and bring it to the reference desk. A trained staff member can go through it with you.</p>
+    <button class="btn btn-cta" data-act="print" style="width:100%">Print this page</button></div>
+  </aside>`;
+}
+
+function tierBadge(t){
+  if(t===1) return `<span class="badge t1">● Found in official records</span>`;
+  if(t===2) return `<span class="badge t2">● Librarian help recommended</span>`;
+  if(t===3) return `<span class="badge t3">● Needs a qualified person</span>`;
+  return `<span class="badge none">● No matching record</span>`;
+}
+
+/* =========================================================================
+   7. VIEWS
+   ========================================================================= */
+function renderHome(){
+  state.view = "home";
+  if(state.emergency) return renderEmergency();
+  if(sunset()) return renderDocs(true);
+  const paused = !qaAvailable();
+  const chips = [
+    "Vinyl chloride in village tap water",
+    "What was tested in private wells, Area North?",
+    "What does “not detected” mean?",
+    "Butyl acrylate at the stream",
+    "What is the limit for benzene?",
+    "Is my water safe to drink?"
+  ];
+  setMain(`
+  <div class="home">
+    <section>
+      <h1>Find and read official water test records</h1>
+      <p class="muted" style="font-size:1.1rem">Ask about a place, a chemical, or a word you don't understand. Every answer shows the document it came from and the dates.</p>
+      ${paused ? `<div class="banner"><div><strong>The question service is paused right now.</strong>You can still browse documents and the word list below, or ask at the reference desk.</div></div>` : `
+      <form class="search" id="searchForm" role="search">
+        <label for="q" class="sr" style="position:absolute;left:-9999px">Type your question</label>
+        <input id="q" name="q" autocomplete="off" placeholder="Type a question, for example: vinyl chloride in well water" maxlength="200">
+        <button class="btn btn-primary" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+          Search
+        </button>
+      </form>
+      <p class="muted" style="margin-top:14px;font-weight:600">Or tap a question to try:</p>
+      <div class="chips">${chips.map(c=>`<button class="chip" data-q="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
+      <div class="tiles">
+        <button class="tile" data-q="What was tested in village tap water?" ${paused?"disabled":""}><span class="ic">${ICONS.tap}</span><b>Village tap water</b><span>Public water system results</span></button>
+        <button class="tile" data-q="What was tested in private wells?" ${paused?"disabled":""}><span class="ic">${ICONS.well}</span><b>Private wells</b><span>County well-test results</span></button>
+        <button class="tile" data-q="What was tested in the streams?" ${paused?"disabled":""}><span class="ic">${ICONS.stream}</span><b>Streams</b><span>Surface water monitoring</span></button>
+        <button class="tile" data-act="limits"><span class="ic">${ICONS.limit}</span><b>Drinking-water limits</b><span>Federal MCL table</span></button>
+        <button class="tile" data-act="glossary"><span class="ic">${ICONS.book}</span><b>Word list</b><span>Plain meanings of report terms</span></button>
+        <button class="tile" data-act="docs"><span class="ic">${ICONS.docs}</span><b>All documents</b><span>Browse the full collection</span></button>
+      </div>
+    </section>
+    <aside class="card cando">
+      <h2>What this kiosk does</h2>
+      <h3>It can</h3>
+      <ul>
+        <li>Find water test results by place or chemical</li>
+        <li>Show the published legal limit next to each result</li>
+        <li>Explain words used in test reports</li>
+        <li>Tell you exactly which document and page a fact came from</li>
+      </ul>
+      <h3>It can't</h3>
+      <ul>
+        <li>Tell you if water is safe for you or your family</li>
+        <li>Answer medical, legal or settlement questions</li>
+        <li>Guess when it doesn't have the data</li>
+      </ul>
+      <p style="font-size:.95rem">When it can't help, it prints a card that tells you who can.</p>
+      <div class="tier-legend">
+        <div>${tierBadge(1)}</div>
+        <div>${tierBadge(2)}</div>
+        <div>${tierBadge(3)}</div>
+      </div>
+    </aside>
+  </div>`, homePrintable());
+}
+
+function homePrintable(){
+  return {title:"Questions for the reference desk", body:`<p>Use this sheet to write down what you'd like help with. Bring it to the reference desk.</p><div class="pbox"><b>What I'd like to find or understand:</b><div class="lines"><div></div><div></div><div></div><div></div></div></div><div class="pbox"><b>Place (general area only — no address needed):</b><div class="lines"><div></div></div></div>`};
+}
+
+function summaryForTier1(r){
+  const items = [];
+  const A = r.analytes.map(a=>ANALYTES[a].name.toLowerCase());
+  const Ls = r.locations.map(l=>LOCATIONS[l].short);
+  if(r.recs.length){
+    const locSet = [...new Set(r.recs.map(x=>x.loc))];
+    const anSet = [...new Set(r.recs.map(x=>x.an))];
+    const latest = r.recs.reduce((m,x)=>x.date>m?x.date:m, "0000");
+    const nd = r.recs.filter(x=>!x.detected).length;
+    items.push(`We found <b>${r.recs.length} test result${r.recs.length>1?"s":""}</b> for ${anSet.length===1?`<b>${esc(ANALYTES[anSet[0]].name.toLowerCase())}</b>`:`${anSet.length} chemicals`} at ${locSet.length===1?`<b>${esc(LOCATIONS[locSet[0]].short)}</b>`:`${locSet.length} places`}.`);
+    items.push(`The most recent sample in these results was collected on <b>${longDate(latest)}</b>.`);
+    items.push(`${nd} of ${r.recs.length} result${r.recs.length>1?"s were":" was"} reported as <b>not detected</b>; ${r.recs.length-nd} reported an amount.`);
+  }
+  r.analytes.forEach(a=>{
+    const an = ANALYTES[a];
+    items.push(an.mcl===null ? `There is <b>no federal drinking-water limit (MCL)</b> for ${esc(an.name.toLowerCase())}.` : `The federal drinking-water limit (MCL) for ${esc(an.name.toLowerCase())} is <b>${fmtNum(an.mcl)} µg/L</b> (${esc(an.mclText)}).`);
+  });
+  return items;
+}
+
+function absenceNotes(r){
+  const notes = [];
+  if(r.analytes.length && r.locations.length){
+    r.analytes.forEach(a=>r.locations.forEach(l=>{
+      if(!r.recs.some(x=>x.an===a && x.loc===l)) notes.push(`We don't have data on <b>${esc(ANALYTES[a].name.toLowerCase())}</b> at <b>${esc(LOCATIONS[l].short)}</b>.`);
+    }));
+  } else if(r.analytes.length){
+    r.analytes.forEach(a=>{ if(!RECORDS.some(x=>x.an===a)) notes.push(`We don't have any test results for <b>${esc(ANALYTES[a].name.toLowerCase())}</b> in this collection. Only the published limit is shown.`); });
+  }
+  r.absent.forEach(w=>notes.push(`We don't have data on <b>${esc(w)}</b> in this collection.`));
+  return notes;
+}
+
+function standardsCard(anIds){
+  const rows = anIds.map(a=>{ const x=ANALYTES[a]; return `<tr><td><b>${esc(x.name)}</b></td><td>${x.mcl===null?"No federal MCL":esc(x.mclText)}</td><td>${x.mcl===null?"—":fmtNum(x.mcl)+" µg/L"}</td></tr>`; }).join("");
+  return `<article class="result"><div class="datebanner">Source published ${longDate(DOCS.D6.published)} · Corpus updated ${longDate(CORPUS_UPDATED)}</div>
+  <div class="result-body"><h3>Published federal drinking-water limits</h3>
+  <div class="table-wrap"><table><thead><tr><th>Chemical</th><th>Limit as printed</th><th>Same limit in µg/L</th></tr></thead><tbody>${rows}</tbody></table></div></div>${citation("D6")}</article>`;
+}
+
+function renderTier1(q, r){
+  state.view="answer";
+  // location-only overview: latest per analyte
+  let recs = r.recs.slice().sort((a,b)=> a.loc.localeCompare(b.loc) || a.an.localeCompare(b.an) || b.date.localeCompare(a.date) || a.doc.localeCompare(b.doc));
+  const conflicts = conflictsIn(recs);
+  const summary = summaryForTier1(r);
+  const notes = absenceNotes(r);
+  let standardsIds = r.analytes.length ? r.analytes : (r.wantsLimits && !r.locations.length ? Object.keys(ANALYTES) : [...new Set(recs.map(x=>x.an))]);
+  if(!summary.length && r.wantsLimits) summary.push("Here are the published federal limits (MCLs) in this collection. MCLs apply to public drinking-water systems.");
+  const html = `
+    ${backBtn()}
+    <div class="asked"><span class="muted">You asked:</span><q>${esc(q)}</q>${tierBadge(1)}</div>
+    <div class="answer-grid">
+      <section>
+        <div class="plain"><span class="lbl">In plain words</span>
+          ${summary.length?`<ul>${summary.map(s=>`<li>${s}</li>`).join("")}</ul>`:""}
+          <p class="muted" style="font-size:.9rem;margin-bottom:0">These are the numbers as published. The kiosk does not say whether they are safe or unsafe for you.</p>
+        </div>
+        ${conflicts.map(conflictBox).join("")}
+        ${notes.map(n=>`<div class="absent"><p style="margin:0">${n}</p></div>`).join("")}
+        ${recs.map(resultCard).join("")}
+        ${standardsIds.length?standardsCard(standardsIds):""}
+      </section>
+      ${sidePanel(["nd","rl","ugl","mcl", ...(recs.some(x=>x.estimated)?["j"]:[]), "sampledate", ...(recs.some(x=>LOCATIONS[x.loc].kind==="stream")?["surface"]:[]), ...(recs.some(x=>LOCATIONS[x.loc].kind==="well")?["well"]:[])])}
+    </div>`;
+  setMain(html, {title:"Water test records you looked up", question:q, body: printRecords(summary, recs, conflicts, notes, standardsIds)});
+}
+
+function printRecords(summary, recs, conflicts, notes, standardsIds){
+  let h = summary.length?`<div class="pbox"><b>In plain words</b><ul>${summary.map(s=>`<li>${s}</li>`).join("")}</ul></div>`:"";
+  conflicts.forEach(g=>{ h += `<div class="pbox"><b>Sources disagree — librarian review flagged.</b> ${g.map(r=>`${esc(DOCS[r.doc].agency)}: ${r.detected?fmtNum(r.value)+" µg/L"+(r.estimated?" J":""):"not detected"}`).join(" · ")}</div>`; });
+  notes.forEach(n=>{ h += `<p>${n}</p>`; });
+  if(recs.length){
+    h += `<h2>Results</h2><table><thead><tr><th>Chemical</th><th>Place</th><th>Sample collected</th><th>Result</th><th>Limit (MCL)</th><th>Source (published · corpus updated)</th></tr></thead><tbody>`;
+    recs.forEach(r=>{ const a=ANALYTES[r.an], d=DOCS[r.doc]; h += `<tr><td>${esc(a.name)}</td><td>${esc(LOCATIONS[r.loc].name)}</td><td>${longDate(r.date)}</td><td>${r.detected?fmtNum(r.value)+" µg/L"+(r.estimated?" (J)":""):"Not detected (RL "+fmtNum(r.rl)+" µg/L)"}</td><td>${a.mcl===null?"None":fmtNum(a.mcl)+" µg/L"}</td><td>${esc(d.title)} — ${esc(d.agency)} · ${longDate(d.published)} · ${longDate(CORPUS_UPDATED)} · ${esc(d.shelf)}</td></tr>`; });
+    h += `</tbody></table>`;
+  }
+  if(standardsIds && standardsIds.length){ h += `<p><b>Limits source:</b> ${esc(DOCS.D6.title)} — ${esc(DOCS.D6.agency)}.</p>`; }
+  return h;
+}
+
+function renderTier2(q, r, t){
+  state.view="answer";
+  const recs = r.recs.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const emotion = EMOTION.test(t);
+  const anIds = r.analytes.length ? r.analytes : [...new Set(recs.map(x=>x.an))];
+  const facts = anIds.map(a=>`<div class="factcard"><span class="status">Awaiting Expert Review Panel approval</span>
+      <h3 style="margin-top:8px">Fact card: ${esc(ANALYTES[a].name)}</h3>
+      <p style="margin:0">Source: ATSDR ToxFAQs / EPA IRIS. Once approved, the card's wording appears here <b>word for word</b>. The kiosk never rewrites, shortens or personalizes health information. Until then, no health text is shown.</p></div>`).join("");
+  const html = `
+    ${backBtn()}
+    <div class="asked"><span class="muted">You asked:</span><q>${esc(q)}</q>${tierBadge(2)}</div>
+    <div class="answer-grid">
+      <section>
+        <div class="tier-panel t2">
+          <h2>A librarian can go through this with you</h2>
+          ${emotion?`<p>It makes sense to have questions about this. A staff member can sit down with you and help you find the right information and the right people.</p>`:""}
+          <p>Questions that ask what results <b>mean</b>, how they <b>compare</b>, or whether they are <b>high or low</b> need a person. The kiosk has gathered the records it found into a <b>Reference Sheet</b>. Print it and bring it to the reference desk.</p>
+          <div class="btn-row"><button class="btn btn-cta" data-act="print">Print my Reference Sheet</button><button class="btn btn-ghost" data-act="home">Ask something else</button></div>
+        </div>
+        ${recs.length?`<h2 style="margin-top:24px">Records on your Reference Sheet</h2>`:`<div class="absent"><p style="margin:0">No matching records were found for this question. The librarian can help you search for them.</p></div>`}
+        ${conflictsIn(recs).map(conflictBox).join("")}
+        ${recs.map(resultCard).join("")}
+        ${facts}
+      </section>
+      ${sidePanel(["nd","rl","ugl","mcl"])}
+    </div>`;
+  setMain(html, {title:"Reference Sheet — for review with library staff", question:q, kind:"Tier 2 · Librarian-assisted",
+    body: `<p>Bring this sheet to the reference desk. A trained staff member will go through it with you.</p>` + printRecords([], recs, conflictsIn(recs), absenceNotes(r), anIds) +
+      anIds.map(a=>`<div class="pbox"><b>Fact card — ${esc(ANALYTES[a].name)}:</b> Awaiting Expert Review Panel approval. Approved ATSDR/IRIS text will be printed here verbatim.</div>`).join("")});
+}
+
+function renderTier3(q, c){
+  state.view="answer";
+  const html = `
+    ${backBtn()}
+    <div class="asked">${tierBadge(3)}</div>
+    <div class="tier-panel t3" style="max-width:980px">
+      <h1 style="font-size:1.8rem">This question needs a person</h1>
+      <p style="font-size:1.1rem">This kiosk only finds official documents. It can't answer questions about <b>${esc(c.label)}</b>.</p>
+      <p>${esc(c.why)}</p>
+      <h2 style="margin-top:18px">Who can help</h2>
+      <div class="contacts">${c.contacts.map(x=>`<div class="contact"><b>${esc(x.n)}</b><span class="muted">${esc(x.d)}</span></div>`).join("")}
+        <div class="contact"><b>Library reference desk</b><span class="muted">Staff can help you find these contacts and the records for your area.</span></div>
+      </div>
+      <p class="muted">If someone is having a medical emergency, call <b>911</b>. Poison Help line: <b>1-800-222-1222</b>.</p>
+      <div class="btn-row">
+        <button class="btn btn-cta" data-act="print">Print this referral card</button>
+        <button class="btn btn-ghost" data-act="docs">Browse test records instead</button>
+        <button class="btn btn-ghost" data-act="home">Ask something else</button>
+      </div>
+    </div>`;
+  // Question text is deliberately NOT printed on referral cards (privacy).
+  setMain(html, {title:"Referral card", kind:"Tier 3 · Referred to a qualified person",
+    body:`<p>This kiosk can't answer questions about <b>${esc(c.label)}</b>. ${esc(c.why)}</p><h2>Who can help</h2><ul>${c.contacts.map(x=>`<li><b>${esc(x.n)}</b> — ${esc(x.d)}</li>`).join("")}<li><b>Library reference desk</b> — staff can help you find these contacts.</li></ul><p>Medical emergency: call 911 · Poison Help: 1-800-222-1222</p>`});
+}
+
+function renderNoAnswer(q){
+  state.view="answer";
+  setMain(`
+    ${backBtn()}
+    <div class="asked"><span class="muted">You asked:</span><q>${esc(q)}</q>${tierBadge(0)}</div>
+    <div class="tier-panel none" style="max-width:980px">
+      <h2>We couldn't find this in the official documents</h2>
+      <p>The kiosk only answers from the documents in its collection, and nothing matched closely enough. It won't guess.</p>
+      <p>Try naming a <b>place</b> (village tap water, private wells, streams) or a <b>chemical</b> (for example, vinyl chloride). Or print a referral slip and a librarian will help you search.</p>
+      <div class="btn-row"><button class="btn btn-cta" data-act="print">Print a referral slip</button><button class="btn btn-ghost" data-act="docs">Browse all documents</button><button class="btn btn-ghost" data-act="home">Try again</button></div>
+    </div>`,
+    {title:"Referral slip", question:q, kind:"No matching record", body:`<p>The kiosk could not find a close match in its document collection. Please bring this slip to the reference desk so staff can help you search.</p><div class="pbox"><b>Notes:</b><div class="lines"><div></div><div></div><div></div></div></div>`});
+}
+
+function renderAbsent(q, words){
+  state.view="answer";
+  setMain(`
+    ${backBtn()}
+    <div class="asked"><span class="muted">You asked:</span><q>${esc(q)}</q>${tierBadge(1)}</div>
+    <div class="answer-grid"><section>
+      <div class="plain"><span class="lbl">In plain words</span>
+        <p><b>We don't have data on that.</b> ${words.map(w=>`“${esc(w)}”`).join(", ")} ${words.length>1?"are":"is"} not in this kiosk's document collection.</p>
+        <p class="muted" style="font-size:.95rem;margin-bottom:0">That means the library hasn't loaded a document about it. It does not mean nobody has tested for it. A librarian can help you look for other sources.</p>
+      </div>
+      <div class="btn-row"><button class="btn btn-ghost" data-act="docs">See what is in the collection</button></div>
+    </section>${sidePanel([])}</div>`,
+    {title:"No data in collection", question:q, body:`<p>We don't have data on ${words.map(esc).join(", ")} in this kiosk's collection. Please ask library staff to help you look for other sources.</p>`});
+}
+
+function renderGlossaryAnswer(q, terms){
+  state.view="answer";
+  setMain(`
+    ${backBtn()}
+    <div class="asked"><span class="muted">You asked:</span><q>${esc(q)}</q>${tierBadge(1)}</div>
+    <div class="answer-grid"><section>
+      ${terms.map(g=>`<div class="plain" style="margin-bottom:16px"><span class="lbl">Word list</span><h2>${esc(g.term)}</h2><p>${esc(g.def)}</p><p class="muted" style="font-size:.95rem;margin-bottom:0">${esc(g.ex)}</p></div>`).join("")}
+      <div class="result" style="margin-top:0">${citation("D7")}</div>
+      <div class="btn-row"><button class="btn btn-ghost" data-act="glossary">See the whole word list</button></div>
+    </section>${sidePanel([])}</div>`,
+    {title:"Word list", question:q, body: terms.map(g=>`<div class="pbox"><b>${esc(g.term)}</b><br>${esc(g.def)}<br><i>${esc(g.ex)}</i></div>`).join("")});
+}
+
+function renderGlossary(){
+  state.view="glossary";
+  setMain(`${backBtn()}<h1>Word list</h1><p class="muted">Plain meanings of words you'll see in water test reports. Draft — awaiting Expert Review Panel approval.</p>
+    <div class="glossary">${GLOSSARY.map(g=>`<div class="term" id="term-${g.id}"><h3>${esc(g.term)}</h3><p>${esc(g.def)}</p><p class="ex">${esc(g.ex)}</p></div>`).join("")}</div>`,
+    {title:"Word list", body: GLOSSARY.map(g=>`<p><b>${esc(g.term)}</b> — ${esc(g.def)}</p>`).join("")});
+}
+
+function renderLimits(){
+  state.view="limits";
+  const ids = Object.keys(ANALYTES);
+  setMain(`${backBtn()}<h1>Drinking-water limits</h1>
+    <div class="plain" style="margin-bottom:8px"><span class="lbl">In plain words</span><p>An <b>MCL</b> is the highest amount of a chemical U.S. EPA allows in <b>public</b> drinking water. Limits are often printed in mg/L; the kiosk also shows them in µg/L so you can compare with test results, which usually use µg/L.</p><p class="muted" style="font-size:.95rem;margin-bottom:0">Private wells and streams are not regulated by MCLs.</p></div>
+    ${standardsCard(ids)}`,
+    {title:"Federal drinking-water limits", body: printRecords([],[],[],[],ids) + `<table><thead><tr><th>Chemical</th><th>As printed</th><th>µg/L</th></tr></thead><tbody>${ids.map(a=>`<tr><td>${esc(ANALYTES[a].name)}</td><td>${ANALYTES[a].mcl===null?"No federal MCL":esc(ANALYTES[a].mclText)}</td><td>${ANALYTES[a].mcl===null?"—":fmtNum(ANALYTES[a].mcl)}</td></tr>`).join("")}</tbody></table>`});
+}
+
+function renderDocs(isSunset){
+  state.view="docs";
+  const docs = Object.entries(DOCS);
+  setMain(`${isSunset?"":backBtn()}
+    <h1>${isSunset?"Document browser":"All documents"}</h1>
+    <p class="muted">Every document the kiosk can read. Each one is also in the printed reference binder at the desk.</p>
+    <div class="doclist">${docs.map(([id,d])=>{
+      const n = RECORDS.filter(r=>r.doc===id).length;
+      return `<article class="doc">
+        <span class="muted" style="font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em">${esc(d.kind)}</span>
+        <h3 style="margin:0">${esc(d.title)}</h3>
+        <span class="meta">${esc(d.agency)} · Published ${longDate(d.published)}${n?` · ${n} test results`:""}</span>
+        <span class="meta">${esc(d.shelf)}</span>
+        ${docIsStale(id)?`<span><span class="pill">May be out of date</span></span>`:""}
+        <button class="btn btn-primary" data-doc="${id}">Open</button>
+      </article>`;}).join("")}</div>`,
+    {title:"Documents in this kiosk", body:`<ul>${docs.map(([,d])=>`<li><b>${esc(d.title)}</b> — ${esc(d.agency)}, published ${longDate(d.published)} · ${esc(d.shelf)}</li>`).join("")}</ul>`});
+}
+
+function renderDoc(id){
+  state.view="doc";
+  const d = DOCS[id];
+  if(id==="D6") return renderLimits();
+  if(id==="D7") return renderGlossary();
+  const recs = RECORDS.filter(r=>r.doc===id).sort((a,b)=>a.loc.localeCompare(b.loc)||b.date.localeCompare(a.date));
+  const dates = recs.map(r=>r.date).sort();
+  const ans = [...new Set(recs.map(r=>r.an))];
+  const nd = recs.filter(r=>!r.detected).length;
+  const summary = `This is a ${esc(d.kind.toLowerCase())} from <b>${esc(d.agency)}</b> about ${esc(d.about)}. It lists <b>${recs.length} test results</b> for <b>${ans.length} chemicals</b>${dates.length?`, from water collected between <b>${longDate(dates[0])}</b> and <b>${longDate(dates[dates.length-1])}</b>`:""}. ${nd} result${nd===1?" was":"s were"} reported as not detected.`;
+  const th = (label, term)=> term?`<th><button data-term="${term}" aria-label="What does ${label} mean?">${label}</button></th>`:`<th>${label}</th>`;
+  setMain(`
+    <button class="btn btn-ghost back" data-act="docs">← All documents</button>
+    <h1 style="font-size:1.6rem">${esc(d.title)}</h1>
+    ${docIsStale(id)?`<div class="banner"><div><strong>This document may be out of date.</strong>It is ${docStaleDays(id)} days past its expected update. Ask a librarian whether a newer report exists.</div></div>`:""}
+    <div class="answer-grid" style="margin-top:16px"><section>
+      <div class="plain"><span class="lbl">What this document is</span><p>${summary}</p></div>
+      <h2 style="margin-top:24px">How to read the table</h2>
+      <p class="muted">Tap any underlined column name to see what it means.</p>
+      <div class="table-wrap"><table>
+        <thead><tr>${th("Place")}${th("Analyte","analyte")}${th("CAS #","cas")}${th("Sample date","sampledate")}${th("Result","nd")}${th("Reporting limit","rl")}${th("Units","ugl")}</tr></thead>
+        <tbody>${recs.map(r=>`<tr><td>${esc(LOCATIONS[r.loc].name)}</td><td><b>${esc(ANALYTES[r.an].name)}</b></td><td>${esc(ANALYTES[r.an].cas)}</td><td>${longDate(r.date)}</td><td>${r.detected?`${fmtNum(r.value)}${r.estimated?" J":""}`:"ND"}</td><td>${fmtNum(r.rl)}</td><td>µg/L</td></tr>`).join("")}</tbody>
+      </table></div>
+      <div class="result">${citation(id)}</div>
+    </section>${sidePanel(["nd","rl","ugl","j","cas","analyte"])}</div>`,
+    {title:"Document summary", body:`<p><b>${esc(d.title)}</b> — ${esc(d.agency)}, published ${longDate(d.published)} · ${esc(d.shelf)}</p><p>${summary}</p>` + printRecords([],recs,[],[],[])});
+}
+
+function renderPaused(){
+  setMain(`<div class="tier-panel none" style="max-width:980px">
+    <h1 style="font-size:1.8rem">The question service is paused</h1>
+    <p style="font-size:1.1rem">Please ask at the reference desk. Staff can help you find official water test documents.</p>
+    <div class="btn-row"><button class="btn btn-primary" data-act="docs">Browse documents</button><button class="btn btn-ghost" data-act="glossary">Word list</button></div></div>`, homePrintable());
+}
+
+function renderEmergency(){
+  state.view="emergency";
+  $("#main").innerHTML = `<div class="emergency card">
+    <p class="big">Official advisory</p>
+    <div class="banner info" style="margin:10px 0 22px"><div><strong>[Official advisory text appears here exactly as issued.]</strong>Library staff load the advisory from the issuing agency. The kiosk does not write or change it.</div></div>
+    <h2>Emergency</h2><p class="num">Call 911</p>
+    <h2 style="margin-top:18px">Poison Help</h2><p class="num">1-800-222-1222</p>
+    <h2 style="margin-top:18px">Columbiana County Health District</h2><p style="font-size:1.2rem">${SLOT}</p>
+    <p class="muted" style="margin-top:20px">The question service is off while this notice is shown.</p></div>`;
+  state.printable = {title:"Emergency contacts", body:`<p>Emergency: 911 · Poison Help: 1-800-222-1222 · Columbiana County Health District: ${SLOT}</p>`};
+  renderBanners();
+}
+
+/* =========================================================================
+   8. BANNERS (staleness, sunset, staffing)
+   ========================================================================= */
+function renderBanners(){
+  const b = [];
+  const days = daysSinceRefresh();
+  if(state.emergency){ $("#banners").innerHTML = ""; return; }
+  if(sunset()) b.push(`<div class="banner"><div><strong>The question service has turned itself off.</strong>The document collection hasn't had a signed update in ${days} days, so only the approved document browser is available. Please ask staff for the latest information.</div></div>`);
+  else if(!state.qaEnabled) b.push(`<div class="banner"><div><strong>Questions are turned off by library staff.</strong>Please ask at the reference desk.</div></div>`);
+  else if(!state.staffed) b.push(`<div class="banner"><div><strong>Questions are available only during staffed reference hours.</strong>You can still browse documents and the word list.</div></div>`);
+  $("#banners").innerHTML = b.join("");
+}
+
+/* =========================================================================
+   9. MODALS
+   ========================================================================= */
+function openModal(html, opts={}){
+  const root = $("#modal-root");
+  root.innerHTML = `<div class="modal-back" ${opts.locked?"":'data-close="1"'}><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">${html}</div></div>`;
+  const first = root.querySelector("button, [tabindex]");
+  if(first) first.focus({preventScroll:true});
+}
+function closeModal(){ $("#modal-root").innerHTML=""; }
+
+const DISCLAIMER = [
+  "This kiosk is <b>not</b> medical, legal or environmental engineering advice.",
+  "It is <b>not</b> affiliated with or endorsed by U.S. EPA, Ohio EPA or Norfolk Southern.",
+  "Neither IEEE nor Ohio University warrants the accuracy of agency data. IEEE's role is funding and dissemination only.",
+  "It shows information from official public documents, with the source and dates for every answer.",
+  "Nothing you type is saved, and nothing leaves this kiosk."
+];
+
+function showAcknowledgement(){
+  openModal(`
+    <h2 id="mtitle">Before you start</h2>
+    <p style="font-size:1.1rem">This kiosk helps you <b>find and read</b> official water test documents for the East Palestine area.</p>
+    <ul style="font-size:1.02rem">${DISCLAIMER.map(d=>`<li>${d}</li>`).join("")}</ul>
+    <p>For questions about health, safety, or legal matters, it will point you to a person who can help.</p>
+    <div class="btn-row"><button class="btn btn-primary" id="ackBtn" style="flex:1">I understand — start</button></div>
+  `, {locked:true});
+  $("#ackBtn").onclick = ()=>{ state.acknowledged=true; state.counts.sessions++; closeModal(); renderHome(); resetIdle(); };
+}
+
+function showLimitations(){
+  openModal(`
+    <h2 id="mtitle">Known limitations</h2>
+    <p class="muted">Final wording is written and approved by the Expert Review Panel. The points below are a draft for their review.</p>
+    <ul>
+      <li>The kiosk only knows the documents the library has loaded. If a document isn't in the collection, the kiosk can't use it.</li>
+      <li>Results describe the water at a <b>specific place and time</b>. They may not describe other places or other days.</li>
+      <li>Federal limits (MCLs) apply to public water systems. They are shown next to private-well and stream results only for reference.</li>
+      <li>When agencies' documents disagree, the kiosk shows both and does not decide which is right.</li>
+      <li>The kiosk does not judge whether any agency's conclusions are right or wrong.</li>
+      <li>Documents are checked weekly and fully refreshed every three months. Older documents are marked “may be out of date.”</li>
+      <li>The kiosk can make mistakes. Use “Report a problem” if something looks wrong; corrections are published, not hidden.</li>
+    </ul>
+    <div class="btn-row"><button class="btn btn-primary" data-close="1">Close</button></div>`);
+}
+
+function showReport(){
+  const cats = ["Information looks wrong","Hard to understand","Missing a source or date","Something upsetting","The kiosk isn't working","Something else"];
+  openModal(`
+    <h2 id="mtitle">Report a problem</h2>
+    <p>Tap what went wrong. Your report goes to the Expert Review Panel's review list. It does <b>not</b> include your name or anything you typed.</p>
+    <div class="choice-grid">${cats.map(c=>`<button class="btn btn-ghost" data-report="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <div class="btn-row"><button class="btn btn-ghost" data-close="1">Cancel</button></div>`);
+}
+
+function showStaff(){
+  const days = daysSinceRefresh();
+  const sw = (id,on,label,cls="")=>`<button class="btn btn-ghost switch ${cls}" id="${id}" aria-pressed="${on}">${on?"ON":"OFF"}</button>`;
+  const c = state.counts;
+  const reports = Object.entries(c.reports).map(([k,v])=>`${esc(k)}: ${v}`).join(" · ") || "None";
+  openModal(`
+    <h2 id="mtitle">Library staff controls</h2>
+    <p class="muted" style="font-size:.9rem">On the installed kiosk these are physical controls (a key switch and an emergency button) and need no password or technical knowledge. They are buttons here for the prototype.</p>
+    <div class="toggle-row"><div><b>Question service (kill switch)</b><br><span class="muted" style="font-size:.85rem">Turn off to stop all questions at once.</span></div>${sw("swQA",state.qaEnabled)}</div>
+    <div class="toggle-row"><div><b>Emergency mode</b><br><span class="muted" style="font-size:.85rem">Shows only the official advisory and emergency contacts.</span></div>${sw("swEm",state.emergency,"","danger")}</div>
+    <div class="toggle-row"><div><b>Reference desk staffed now</b><br><span class="muted" style="font-size:.85rem">Questions only run during staffed hours.</span></div>${sw("swStaff",state.staffed)}</div>
+    <div class="toggle-row" style="display:block"><b>Days since last signed data refresh: ${days}</b><br><span class="muted" style="font-size:.85rem">Simulate for testing: at 180 days the question service shuts itself off and only the document browser remains.</span>
+      <div class="seg" style="margin-top:10px">
+        <button data-sim="real" aria-pressed="${state.simDays===null}">Real date</button>
+        <button data-sim="100" aria-pressed="${state.simDays===100}">100 days</button>
+        <button data-sim="181" aria-pressed="${state.simDays===181}">181 days</button>
+      </div>
+      ${days>=90&&days<180?`<p class="muted" style="margin:8px 0 0;font-size:.85rem">Quarterly refresh is overdue. Auto-shutoff in ${180-days} days.</p>`:""}
+    </div>
+    <h3 style="margin-top:16px">Anonymous counts (this session of the page only)</h3>
+    <div class="stats">
+      <div class="stat"><b>${c.sessions}</b><span>Sessions</span></div>
+      <div class="stat"><b>${c.t1}</b><span>Answered from records</span></div>
+      <div class="stat"><b>${c.t2}</b><span>Reference Sheets</span></div>
+      <div class="stat"><b>${c.t3}</b><span>Referred to a person</span></div>
+      <div class="stat"><b>${c.noAnswer}</b><span>No match</span></div>
+      <div class="stat"><b>${Object.values(c.reports).reduce((a,b)=>a+b,0)}</b><span>Problem reports</span></div>
+    </div>
+    <p class="muted" style="font-size:.85rem;margin-top:8px">Reports: ${reports}. No question text, names, or addresses are kept. Corpus version ${CORPUS_VERSION}, updated ${longDate(CORPUS_UPDATED)}.</p>
+    <div class="btn-row"><button class="btn btn-primary" data-close="1">Done</button></div>`);
+  $("#swQA").onclick = ()=>{ state.qaEnabled=!state.qaEnabled; refreshAfterStaff(); };
+  $("#swEm").onclick = ()=>{ state.emergency=!state.emergency; refreshAfterStaff(); };
+  $("#swStaff").onclick = ()=>{ state.staffed=!state.staffed; refreshAfterStaff(); };
+  document.querySelectorAll("[data-sim]").forEach(b=>b.onclick=()=>{ const v=b.dataset.sim; state.simDays = v==="real"?null:Number(v); refreshAfterStaff(); });
+}
+function refreshAfterStaff(){ if(state.emergency) renderEmergency(); else renderHome(); showStaff(); }
+
+/* =========================================================================
+   10. PRINT  (every printout carries the disclaimer — FR-14)
+   ========================================================================= */
+function doPrint(){
+  const p = state.printable || homePrintable();
+  const now = new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  $("#print-area").innerHTML = `
+    <h1>${esc(p.title)}</h1>
+    <p>East Palestine Memorial Public Library · Water Records Finder · Printed ${now} · Corpus updated ${longDate(CORPUS_UPDATED)}${p.kind?` · ${esc(p.kind)}`:""}</p>
+    ${p.question?`<p><b>Question:</b> ${esc(p.question)}</p>`:""}
+    ${p.body}
+    <div class="pbox"><b>Print this and talk to a librarian.</b> Bring this page to the reference desk.</div>
+    <div class="disc"><b>Disclaimer.</b> ${DISCLAIMER.slice(0,3).map(d=>d.replace(/<\/?b>/g,"")).join(" ")} PROTOTYPE: values shown are fictional demo data.</div>`;
+  let embedded = false; try { embedded = window.self !== window.top; } catch(e){ embedded = true; }
+  if(embedded){
+    // Inside a shared web link the browser blocks printing, so show the sheet the kiosk would print.
+    openModal(`<span class="badge t1">Print preview</span>
+      <p class="muted" style="margin-top:10px">On the library kiosk this sheet prints at the reference desk printer. Printing isn't available in this online preview.</p>
+      <div class="sheet-preview">${$("#print-area").innerHTML}</div>
+      <div class="btn-row"><button class="btn btn-primary" data-close="1">Close</button></div>`);
+    $("#mtitle") || $(".sheet-preview h1").setAttribute("id","mtitle");
+    return;
+  }
+  window.print();
+}
+
+/* =========================================================================
+   11. READ ALOUD (on-device speech; nothing is sent anywhere)
+   ========================================================================= */
+function stopSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); const b=$("#readBtn"); if(b){b.setAttribute("aria-pressed","false"); b.querySelector("span").textContent="Read aloud";} }
+function toggleSpeech(){
+  if(!("speechSynthesis" in window)){ alertInline("Read aloud isn't available on this device."); return; }
+  const b=$("#readBtn");
+  if(speechSynthesis.speaking){ stopSpeech(); return; }
+  const text = $("#main").innerText.replace(/\s+/g," ").replace(/µg\/L/g,"micrograms per liter").replace(/\bMCL\b/g,"M C L");
+  const u = new SpeechSynthesisUtterance(text); u.rate=0.9; u.onend=stopSpeech;
+  speechSynthesis.speak(u); b.setAttribute("aria-pressed","true"); b.querySelector("span").textContent="Stop reading";
+}
+function alertInline(msg){ $("#banners").insertAdjacentHTML("beforeend",`<div class="banner info"><div>${esc(msg)}</div></div>`); }
+
+/* =========================================================================
+   12. SESSION / IDLE (privacy: everything clears)
+   ========================================================================= */
+const IDLE_MS = 3*60*1000;
+function resetIdle(){ clearTimeout(state.idleTimer); if(state.acknowledged) state.idleTimer = setTimeout(endSession, IDLE_MS); }
+function endSession(){
+  clearTimeout(state.idleTimer); stopSpeech(); closeModal();
+  state.acknowledged=false; state.printable=null;
+  $("#print-area").innerHTML="";
+  $("#main").innerHTML="";
+  showAcknowledgement();
+}
+
+/* =========================================================================
+   13. EVENTS
+   ========================================================================= */
+document.addEventListener("click", e=>{
+  const t = e.target.closest("button, .modal-back");
+  if(!t) return;
+  if(t.classList.contains("modal-back") && e.target!==t) return;
+  if(t.dataset.close){ closeModal(); return; }
+  if(t.dataset.q){ ask(t.dataset.q); return; }
+  if(t.dataset.doc){ renderDoc(t.dataset.doc); return; }
+  if(t.dataset.term){
+    const g = GLOSSARY.find(x=>x.id===t.dataset.term);
+    if(g) openModal(`<span class="badge t1">Word list</span><h2 id="mtitle" style="margin-top:12px">${esc(g.term)}</h2><p style="font-size:1.1rem">${esc(g.def)}</p><p class="muted">${esc(g.ex)}</p><div class="btn-row"><button class="btn btn-primary" data-close="1">Close</button></div>`);
+    return;
+  }
+  if(t.dataset.report){
+    state.counts.reports[t.dataset.report]=(state.counts.reports[t.dataset.report]||0)+1;
+    openModal(`<h2 id="mtitle">Thank you</h2><p>Your report was added to the review list. The Expert Review Panel looks at every report.</p><div class="btn-row"><button class="btn btn-primary" data-close="1">Close</button></div>`);
+    return;
+  }
+  const act = t.dataset.act;
+  if(act==="home") renderHome();
+  else if(act==="docs") renderDocs(sunset());
+  else if(act==="glossary") renderGlossary();
+  else if(act==="limits") renderLimits();
+  else if(act==="print") doPrint();
+});
+document.addEventListener("submit", e=>{
+  if(e.target.id==="searchForm"){ e.preventDefault(); ask($("#q").value); }
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$(".modal-back:not([data-close])")) closeModal(); });
+["pointerdown","keydown","touchstart"].forEach(ev=>document.addEventListener(ev, resetIdle, {passive:true}));
+
+$("#homeBtn").onclick = ()=>renderHome();
+$("#printTalkBtn").onclick = doPrint;
+$("#reportBtn").onclick = showReport;
+$("#limitsBtn").onclick = showLimitations;
+$("#endBtn").onclick = endSession;
+$("#staffBtn").onclick = showStaff;
+$("#readBtn").onclick = toggleSpeech;
+$("#contrastBtn").onclick = function(){
+  const on = this.getAttribute("aria-pressed")!=="true";
+  this.setAttribute("aria-pressed", on);
+  document.documentElement.dataset.contrast = on?"high":"";
+};
+document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{
+  document.documentElement.style.setProperty("--fs", b.dataset.size+"px");
+  document.querySelectorAll("[data-size]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+});
+
+/* expose for the test harness / evaluation scripts */
+window.KIOSK = {classify:(q)=>{const t=normalize(q); const c=tier3Gate(t); if(c) return {tier:3,cat:c.id}; if(TIER2.test(t)) return {tier:2}; const r=retrieve(t); return {tier:(r.score>=RELEVANCE_THRESHOLD||r.wantsLimits||findGlossary(t).length||r.absent.length)?1:0, r};}, ask, state};
+
+showAcknowledgement();
+</script>
+</body>
+</html>
