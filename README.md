@@ -15,8 +15,8 @@ The home screen has **two search bars**:
 | | **Search** | **AI helper** |
 |---|---|---|
 | What you type | Any question or topic, in any wording | Any question, in your own words |
-| What you get | Links to the official pages that have the answer (U.S. EPA, Ohio EPA, Columbiana County Health District, ATSDR, NIEHS, USGS and others), plus matching library-binder records and word-list definitions | A plain-language explanation written by a local AI model (Ollama), with links to the sources it was given |
-| Uses AI? | No | Yes, running on the kiosk computer |
+| What you get | Links to the official pages that have the answer (U.S. EPA, Ohio EPA, Columbiana County Health District, ATSDR, NIEHS, USGS and others), plus matching library-binder records and word-list definitions | A plain-language explanation written by an AI model that runs on the device, with links to the sources it was given |
+| Uses AI? | No | Yes: Ollama on the kiosk, or a model that runs inside the browser |
 
 A third section, **Live conditions**, shows air quality, weather and stream flow for East Palestine and updates every 5 minutes.
 
@@ -48,30 +48,34 @@ The AI helper adds three more protections:
 
 `index.html` is a single self-contained file. Search, the word list and documents work by opening it in any modern browser. The AI helper and live conditions need the steps below.
 
-### AI helper (Ollama)
+### AI helper
+
+The AI helper uses the first option that works on the device. No setup is needed for option 2.
+
+| | Where it runs | Setup | When it's used |
+|---|---|---|---|
+| **1. Ollama** | The kiosk computer | Install Ollama and a model (below) | Whenever Ollama is reachable. This is the kiosk configuration. |
+| **2. In-browser AI** | Inside the visitor's browser ([WebLLM](https://github.com/mlc-ai/web-llm) on WebGPU) | None. The visitor taps **Download and turn on** once. | On the GitHub Pages site, in Chrome, Edge or Safari 26+ |
+| **3. Claude** | Anthropic's servers | None | Only on the claude.ai preview link, which can't reach Ollama or run WebLLM |
+
+All three go through the same safety check, rules, verdict filter and link filter.
+
+**In-browser AI details.** The model is Llama 3.2 3B on computers and Llama 3.2 1B on phones and tablets. It uses the half-precision build when the graphics chip supports it, and the full-precision build otherwise. The first download is about 2 GB on computers and 0.9 GB on phones. After that it loads from the browser's storage. Questions never leave the device. Answers are slower and simpler than a larger Ollama model.
+
+**Ollama setup (kiosk).**
 
 1. Install Ollama from [ollama.com](https://ollama.com) and download a model:
    ```bash
    ollama pull llama3.1:8b
    ```
-   Any chat model works. A Llama- or Qwen-class 7–8B model fits the kiosk's 16 GB GPU.
 2. Serve the page from the kiosk computer itself, so Ollama accepts its requests (Ollama allows `127.0.0.1` by default):
    ```bash
    python3 -m http.server 8080 --bind 127.0.0.1
    ```
    Then open **http://127.0.0.1:8080**.
-3. The AI panel shows **Connected** when it finds Ollama. Staff can change the Ollama address or model under **Staff → AI helper**.
+3. The AI panel shows **Connected · running on this computer**. Staff can change the Ollama address or model under **Staff → AI helper**.
 
-To use the AI helper from a different web address (for example a GitHub Pages copy), allow that address in Ollama with `OLLAMA_ORIGINS`, then restart Ollama:
-
-```bash
-# macOS
-launchctl setenv OLLAMA_ORIGINS "https://gurmehar-chima.github.io"
-# Linux (systemd): add  Environment="OLLAMA_ORIGINS=https://gurmehar-chima.github.io"  with  systemctl edit ollama.service
-# Windows: add OLLAMA_ORIGINS as a user environment variable
-```
-
-**On the claude.ai preview link** ([link.md](link.md)), the page can't reach Ollama. There the AI helper uses Claude instead and says so on screen. The same safety check, rules and filters apply.
+To let the GitHub Pages site use Ollama instead of the in-browser model, allow its address with `OLLAMA_ORIGINS="https://gurmehar-chima.github.io"` and restart Ollama.
 
 ### Live conditions
 
@@ -87,13 +91,13 @@ U.S. EPA's own East Palestine air monitoring page is marked "no longer updated,"
 
 USGS plans to retire its legacy WaterServices API in winter 2027. The page already falls back to the newer [USGS Water Data API](https://api.waterdata.usgs.gov/docs/ogcapi/migration).
 
-**Kiosk network allow-list:** `air-quality-api.open-meteo.com`, `api.open-meteo.com`, `waterservices.usgs.gov`, `api.waterdata.usgs.gov`. Linked agency websites also need to be allowed if patrons should open them on the kiosk.
+**Kiosk network allow-list:** `air-quality-api.open-meteo.com`, `api.open-meteo.com`, `waterservices.usgs.gov`, `api.waterdata.usgs.gov`. The in-browser AI also needs `cdn.jsdelivr.net`, `huggingface.co` and `raw.githubusercontent.com` for its one-time download. Linked agency websites also need to be allowed if patrons should open them on the kiosk.
 
 **Staff controls:** tap **Staff** in the bottom-right corner. On the installed kiosk these would be physical controls, such as a key switch and an emergency button.
 
 ## Testing
 
-`tests/smoke-test.js` runs 28 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS and Ollama so no network or GPU is needed. The test checks:
+`tests/smoke-test.js` runs 30 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS, Ollama and the in-browser AI so no network or GPU is needed. The test checks:
 
 - question routing for all three result types
 - that any wording returns at least one official link
@@ -101,6 +105,7 @@ USGS plans to retire its legacy WaterServices API in winter 2027. The page alrea
 - that unofficial links are stripped from AI answers
 - that AI answers containing a safety verdict are withheld
 - that the live charts draw
+- that the in-browser AI can be turned on and answers a question that was waiting
 
 ```bash
 npm install playwright
@@ -116,7 +121,7 @@ When adding red-team questions (the project calls for 75), add them to `ROUTING`
 index.html               The complete kiosk page (HTML, CSS and JavaScript in one file)
 link.md                  Link to the claude.ai preview of the page
 tests/smoke-test.js      Routing, search, AI-safety and live-chart tests
-tests/mocks.js           Simulated Open-Meteo, USGS and Ollama responses for the tests
+tests/mocks.js           Simulated Open-Meteo, USGS, Ollama and WebLLM responses for the tests
 docs/screenshots/        Screenshots used in this README
 ```
 
@@ -131,7 +136,7 @@ Inside `index.html`, the script is organized in numbered sections:
 | 7b | `RESOURCES`: the official links that search and the AI draw on | Add or retire links here |
 | 7b | `CONTACTS`: the phone numbers on referral cards | Re-confirm regularly |
 | 7c | Search results | — |
-| 7d | AI helper: `AI_RULES` (the model's instructions), the output filter and Ollama streaming | — |
+| 7d | AI helper: `AI_RULES` (the model's instructions), the output filter, Ollama and in-browser (WebLLM) streaming | — |
 | 7e | Live conditions: data loaders, refresh timer and SVG charts | — |
 | 8–13 | Banners, modals, printing, read-aloud, session reset and events | — |
 
@@ -148,7 +153,7 @@ The IDs refer to the project's student requirements document.
 - **FR-14:** a disclaimer screen must be accepted before first use, and every printout carries the disclaimer.
 - **FR-16, FR-17, FR-22:** the kill switch, emergency mode and "reference desk staffed" toggle also pause the AI helper.
 - **FR-18, FR-19:** stale documents are flagged, and the 180-day auto-sunset turns off questions.
-- **FR-21, NFR-1, NFR-2:** only anonymous counts are kept, in memory. Ollama runs on the kiosk, and the session clears after 3 minutes idle.
+- **FR-21, NFR-1, NFR-2:** only anonymous counts are kept, in memory. Ollama and the in-browser AI both keep questions on the device, and the session clears after 3 minutes idle.
 - **NFR-7, NFR-9:** plain-language summaries, a word list, three text sizes, high contrast, read-aloud, large touch targets, and keyboard-readable charts with a "Show the numbers" table.
 
 ## Known gaps before real use

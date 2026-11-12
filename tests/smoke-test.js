@@ -74,6 +74,22 @@ const FREE_FORM = ["how do I get my well tested", "where did the smoke go", "soi
   const charts = await page.locator(".chart-host svg").count();
   check(charts >= 6, `live conditions draw ${charts} charts`);
 
+  // In-browser AI (no Ollama): question waits, model downloads, then it answers.
+  const p2 = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  p2.on("pageerror", (e) => errors.push(e.message));
+  await install(p2, { ollama: false, webgpu: true });
+  await p2.goto("file://" + path.resolve(__dirname, "..", "index.html"));
+  await p2.click("#ackBtn");
+  await p2.waitForTimeout(600);
+  const offer = await p2.locator('[data-act="webllm-load"]').count();
+  check(offer > 0, "without Ollama, the page offers to turn on the in-browser AI");
+  await p2.evaluate(() => KIOSK.aiAsk("What is an MCL?"));
+  await p2.click('#aiLog [data-act="webllm-load"]');
+  await p2.waitForTimeout(1500);
+  const ans = await p2.evaluate(() => ({ status: KIOSK.AI.status, last: KIOSK.AI.log[KIOSK.AI.log.length - 1].html }));
+  check(ans.status === "webllm" && ans.last.includes("highest amount") && ans.last.includes("epa.gov/ground-water"), "in-browser AI answers the waiting question");
+  await p2.screenshot({ path: path.resolve(__dirname, "..", "docs/screenshots/ai-in-browser.png") });
+
   check(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join("; ") : ""));
   await browser.close();
   console.log(failed ? `\n${failed} failure(s)` : "\nAll checks passed");

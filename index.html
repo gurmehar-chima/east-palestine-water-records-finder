@@ -70,6 +70,7 @@
   --shadow:none;
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{font-size:var(--fs)}
 body{margin:0;background:var(--bg);color:var(--ink);
   font-family:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -293,6 +294,11 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .ai-set{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:8px}
 .ai-set label{display:flex;flex-direction:column;font-size:.85rem;font-weight:600;gap:4px}
 .ai-set input{min-height:52px;border:2px solid var(--line);border-radius:10px;padding:0 12px;background:var(--paper)}
+.wl-box{display:flex;flex-direction:column;gap:8px;margin-top:12px;padding:14px 16px;border:2px dashed var(--t3);border-radius:12px;background:var(--t3-soft)}
+.wl-box .btn{align-self:flex-start;min-height:56px}
+.wl-box .muted{font-size:.88rem}
+.wl-bar{height:12px;border-radius:999px;background:var(--paper);border:2px solid var(--line);overflow:hidden}
+.wl-bar i{display:block;height:100%;background:var(--t3);transition:width .3s}
 /* live conditions */
 .live-strip{margin-top:24px}
 .live-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
@@ -860,6 +866,7 @@ function renderHome(){
       </form>
       <div class="chips">${aChips.map(c=>`<button class="chip" data-aiq="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
       <p class="ai-status"></p>
+      <div class="webllm-slot"></div>
     </section>
   </div>
   <section class="card live-strip" id="liveStrip"></section>
@@ -1259,8 +1266,46 @@ const AI = {
   model: "llama3.1:8b",
   status: "unknown",      // unknown | checking | ollama | nomodel | preview | offline
   provider: null,         // "ollama" | "sample"
-  models: [], history: [], log: [], busy: false, ctrl: null
+  models: [], history: [], log: [], busy: false, ctrl: null, pending: null,
+  web: {engine:null, loading:false, progress:0, text:"", model:null, error:null}
 };
+/* In-browser AI (WebLLM + WebGPU): used when Ollama isn't reachable. Downloads a model once, then runs on this device. */
+const WEBLLM_URL = "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@0.2.84/+esm";
+function isMobileDevice(){ return /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints>1 && /Macintosh/.test(navigator.userAgent)); }
+function webllmLabel(){ const m = AI.web.model||""; return m.startsWith("Llama-3.2-3B")?"Llama 3.2 3B":m.startsWith("Llama-3.2-1B")?"Llama 3.2 1B":m; }
+async function webllmLoad(){
+  if(AI.web.engine || AI.web.loading) return;
+  AI.web.loading = true; AI.web.error = null; AI.web.progress = 0; AI.web.text = "Starting…"; renderWebLLM();
+  try{
+    if(!navigator.gpu) throw new Error("This browser doesn't support WebGPU");
+    const adapter = await navigator.gpu.requestAdapter();
+    if(!adapter) throw new Error("The browser can't use this device's graphics chip");
+    const webllm = window.__webllmMock || await import(WEBLLM_URL);
+    const q = adapter.features && adapter.features.has("shader-f16") ? "q4f16_1" : "q4f32_1";
+    const prefs = (isMobileDevice()?["Llama-3.2-1B-Instruct"]:["Llama-3.2-3B-Instruct","Llama-3.2-1B-Instruct"]).map(n=>`${n}-${q}-MLC`);
+    const ids = ((webllm.prebuiltAppConfig||{}).model_list||[]).map(m=>m.model_id);
+    AI.web.model = prefs.find(id=>!ids.length || ids.includes(id)) || prefs[prefs.length-1];
+    AI.web.engine = await webllm.CreateMLCEngine(AI.web.model, {initProgressCallback: r=>{ AI.web.progress = r.progress||0; AI.web.text = r.text||""; renderWebLLM(); }});
+    AI.status = "webllm"; AI.provider = "webllm";
+  }catch(e){
+    AI.web.error = (e && e.message) || String(e); AI.web.engine = null;
+  }
+  AI.web.loading = false; renderWebLLM(); renderAIStatus();
+  if(AI.provider==="webllm" && AI.pending){ const q = AI.pending; AI.pending = null; aiUpdateLast(`<span class="typing">The AI helper is ready.</span>`); aiAsk(q, true); }
+}
+function webllmBoxHTML(){
+  const w = AI.web;
+  if(AI.status!=="webllm-ready" && !w.loading && !(w.error && !w.engine)) return "";
+  if(w.loading){
+    const pct = Math.round((w.progress||0)*100);
+    return `<div class="wl-box"><b>Downloading the AI helper to this device… ${pct}%</b>
+      <div class="wl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
+      <span class="muted">This happens once. Later visits load from this device's storage. ${esc((w.text||"").slice(0,90))}</span></div>`;
+  }
+  if(w.error) return `<div class="wl-box"><b>The AI helper couldn't start on this device.</b><span class="muted">${esc(w.error)}. Try Chrome, Edge or Safari 26 or newer on a computer, or use Search.</span><button class="btn btn-ghost" data-act="webllm-load">Try again</button></div>`;
+  return `<div class="wl-box"><b>Turn on the AI helper</b><span class="muted">It runs entirely in this browser, so your questions never leave this device. The first time, it downloads a model (${isMobileDevice()?"about 0.9 GB":"about 1–2 GB"}). Use Wi-Fi.</span><button class="btn btn-primary" data-act="webllm-load">Download and turn on</button></div>`;
+}
+function renderWebLLM(){ document.querySelectorAll(".webllm-slot").forEach(el=>{ el.innerHTML = webllmBoxHTML(); }); }
 
 const AI_RULES = `You are the AI helper on a public touchscreen kiosk at the East Palestine Memorial Public Library in East Palestine, Ohio. You help residents find and understand official public information about water, air and soil monitoring after the February 2023 train derailment.
 
@@ -1337,6 +1382,8 @@ async function aiCheck(){
   }catch(e){
     const s = await getSample();
     if(s){ AI.status="preview"; AI.provider="sample"; AI.sample=s; }
+    else if(AI.web.engine){ AI.status="webllm"; AI.provider="webllm"; }
+    else if(navigator.gpu){ AI.status="webllm-ready"; AI.provider=null; }
     else { AI.status="offline"; AI.provider=null; }
   }
   renderAIStatus();
@@ -1346,7 +1393,9 @@ function aiStatusText(){
     case "ollama": return {cls:"ok", t:`Connected · running on this computer (${AI.model})`};
     case "nomodel": return {cls:"warn", t:"Ollama is running but has no model installed. Staff: run “ollama pull llama3.1:8b”."};
     case "preview": return {cls:"warn", t:"Online preview · Ollama isn't reachable from this link, so answers come from Claude instead"};
-    case "offline": return {cls:"warn", t:"The AI helper isn't connected. Library staff: start Ollama on this computer (see Staff → AI helper)."};
+    case "webllm": return {cls:"ok", t:`Connected · running in this browser (${webllmLabel()}) · questions stay on this device`};
+    case "webllm-ready": return {cls:"warn", t:AI.web.loading?"Downloading the AI helper…":"The AI helper can run in this browser. Turn it on below."};
+    case "offline": return {cls:"warn", t:"This browser can't run the AI helper. Use Chrome, Edge or Safari 26 or newer, or start Ollama on this computer."};
     case "checking": return {cls:"", t:"Checking the AI helper…"};
     default: return {cls:"", t:"AI helper not checked yet"};
   }
@@ -1354,6 +1403,7 @@ function aiStatusText(){
 function renderAIStatus(){
   const s = aiStatusText();
   document.querySelectorAll(".ai-status").forEach(el=>{ el.className = "ai-status "+s.cls; el.textContent = s.t; });
+  renderWebLLM();
 }
 
 function renderAI(){
@@ -1368,6 +1418,7 @@ function renderAI(){
         <h1>Ask the AI helper</h1>
         <p class="muted" style="font-size:1.05rem">Ask in your own words. The AI helper explains official information in plain language and shows where it came from. It can make mistakes, so always check the linked source.</p>
         <p class="ai-status"></p>
+        <div class="webllm-slot"></div>
         <div class="chat" id="aiLog" aria-live="polite">${AI.log.length?AI.log.map(m=>m.html).join(""):`<div class="bubble bot"><b>Hi.</b> I can help you find and understand public information about water, air and soil in East Palestine. I can't tell you whether something is safe for you or give medical or legal advice, but I can point you to people who can.</div>`}</div>
         ${paused?`<div class="banner"><div><strong>The AI helper is paused right now.</strong>Please ask at the reference desk.</div></div>`:`
         <form class="search" id="aiForm" autocomplete="off">
@@ -1408,12 +1459,12 @@ function aiUpdateLast(html){
   state.printable = aiPrintable();
 }
 
-async function aiAsk(q){
+async function aiAsk(q, resumed){
   q = (q||"").trim(); if(!q || AI.busy) return;
   if(state.view!=="ai") renderAI();
   if(state.emergency) return renderEmergency();
   if(!qaAvailable()) return;
-  aiAppend("user", esc(q));
+  if(!resumed) aiAppend("user", esc(q));
   const t = normalize(q);
 
   // FR-5: deterministic gate BEFORE any model call.
@@ -1431,6 +1482,11 @@ async function aiAsk(q){
   const ctx = buildAIContext(t);
   const sourcesHTML = `<details class="srcs"><summary>Sources the AI was given (${ctx.links.length})</summary><div class="rlinks compact">${ctx.links.map(linkCard).join("")}</div></details>`;
 
+  if(!AI.provider && (AI.status==="webllm-ready" || AI.web.loading)){
+    AI.pending = q;
+    aiAppend("bot", `<p><b>The AI helper needs to be turned on first.</b> It runs in this browser, so your question stays on this device. It will answer as soon as it's ready.</p>${AI.web.loading?"":`<button class="btn btn-primary" data-act="webllm-load">Download and turn on</button>`}`);
+    return;
+  }
   if(!AI.provider){
     aiAppend("bot", `<p><b>The AI helper isn't connected right now.</b> Here are official pages that match your question:</p><div class="rlinks compact">${searchResources(t).concat(searchResources(t).length?[]:CORE_RESOURCES.map(id=>RES[id])).slice(0,5).map(linkCard).join("")}</div>`);
     return;
@@ -1447,6 +1503,7 @@ async function aiAsk(q){
   };
   try{
     if(AI.provider==="ollama") await aiOllama(q, ctx, onText);
+    else if(AI.provider==="webllm") await aiWebLLM(q, ctx, onText);
     else await aiSample(q, ctx, onText);
   }catch(e){
     if(!stopped && e.name!=="AbortError"){
@@ -1491,6 +1548,18 @@ async function aiOllama(q, ctx, onText){
       if(j.error) throw new Error(j.error);
       if(j.message && j.message.content){ text += j.message.content; onText(text); }
     }
+  }
+  return text;
+}
+async function aiWebLLM(q, ctx, onText){
+  const eng = AI.web.engine;
+  const chunks = await eng.chat.completions.create({stream:true, temperature:0.2, max_tokens:450,
+    messages:[{role:"system", content: AI_RULES+"\n\n"+ctx.text}, ...AI.history, {role:"user", content:q}]});
+  let text = "";
+  for await (const c of chunks){
+    if(AI.ctrl.signal.aborted){ try{ eng.interruptGenerate && eng.interruptGenerate(); }catch(e){} break; }
+    text += (c.choices && c.choices[0] && c.choices[0].delta && c.choices[0].delta.content) || "";
+    onText(text);
   }
   return text;
 }
@@ -1890,7 +1959,7 @@ function showStaff(){
         <datalist id="ollamaModels">${AI.models.map(m=>`<option value="${esc(m)}">`).join("")}</datalist>
         <button class="btn btn-ghost" id="ollamaTest">Save and test</button>
       </div>
-      <p class="muted" style="font-size:.85rem;margin:8px 0 0">Run Ollama on this computer and open the kiosk from http://127.0.0.1 (see the README), or allow this page's address with OLLAMA_ORIGINS.</p>
+      <p class="muted" style="font-size:.85rem;margin:8px 0 0">If Ollama isn't reachable, the AI helper can run inside the browser instead (WebGPU, one-time download). Run Ollama on this computer and open the kiosk from http://127.0.0.1 (see the README), or allow this page's address with OLLAMA_ORIGINS.</p>
     </div>
     <div class="toggle-row" style="display:block"><b>Days since last signed data refresh: ${days}</b><br><span class="muted" style="font-size:.85rem">Simulate for testing: at 180 days the question service shuts itself off and only the document browser remains.</span>
       <div class="seg" style="margin-top:10px">
@@ -2006,6 +2075,7 @@ document.addEventListener("click", e=>{
   else if(act==="limits") renderLimits();
   else if(act==="print") doPrint();
   else if(act==="ai") renderAI();
+  else if(act==="webllm-load") webllmLoad();
   else if(act==="live") renderLive();
 });
 document.addEventListener("submit", e=>{

@@ -9,7 +9,18 @@ function wx(){ const h={}, cur={time:null}; const s1=hourly(49,i=>48+9*Math.sin(
   Object.assign(cur,{time:s1.cur,temperature_2m:s1.v[48],relative_humidity_2m:s3.v[48],precipitation:0,wind_speed_10m:s2.v[48],wind_direction_10m:290,wind_gusts_10m:15}); return {hourly:h,current:cur}; }
 function usgs(){ const now=Date.now(); const mk=(code,unit,f)=>({variable:{variableCode:[{value:code}],unit:{unitCode:unit},noDataValue:-999999,variableName:code},sourceInfo:{siteName:"LITTLE BEAVER CREEK NEAR EAST LIVERPOOL OH"},values:[{value:Array.from({length:192},(_,i)=>({value:String(f(i).toFixed(2)),dateTime:new Date(now-(191-i)*900e3).toISOString()}))}]});
   return {value:{timeSeries:[mk("00060","ft3/s",i=>310+40*Math.sin(i/30)),mk("00065","ft",i=>2.4+0.15*Math.sin(i/30))]}}; }
-async function install(page, {ollama=true, aiText="Vinyl chloride is a gas used to make PVC plastic. See ToxFAQs: Vinyl Chloride (https://wwwn.cdc.gov/TSP/ToxFAQs/ToxFAQsDetails.aspx?faqid=281&toxid=51). A made-up link: https://example.com/fake. Print this page and talk to a librarian for more help."}={}){
+// Simulated WebGPU + WebLLM (in-browser AI) for browsers without Ollama.
+const WEBGPU_MOCK = `
+  Object.defineProperty(navigator, "gpu", {value:{requestAdapter: async()=>({features:new Set(["shader-f16"])})}, configurable:true});
+  window.__webllmMock = {
+    prebuiltAppConfig:{model_list:[{model_id:"Llama-3.2-3B-Instruct-q4f16_1-MLC"},{model_id:"Llama-3.2-1B-Instruct-q4f16_1-MLC"}]},
+    CreateMLCEngine: async (id, cfg)=>{ for(const p of [0.25,0.6,1]){ await new Promise(r=>setTimeout(r,60)); cfg.initProgressCallback({progress:p, text:"Loading model"}); }
+      return { interruptGenerate(){}, chat:{completions:{create: async()=> (async function*(){
+        for(const w of "An MCL is the highest amount of a chemical EPA allows in public drinking water. See National Primary Drinking Water Regulations (https://www.epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations).".split(/(?<= )/)) yield {choices:[{delta:{content:w}}]};
+      })()}}}; }
+  };`;
+async function install(page, {ollama=true, webgpu=false, aiText="Vinyl chloride is a gas used to make PVC plastic. See ToxFAQs: Vinyl Chloride (https://wwwn.cdc.gov/TSP/ToxFAQs/ToxFAQsDetails.aspx?faqid=281&toxid=51). A made-up link: https://example.com/fake. Print this page and talk to a librarian for more help."}={}){
+  if(webgpu) await page.addInitScript(WEBGPU_MOCK);
   await page.route(/air-quality-api\.open-meteo\.com/, r=>r.fulfill({json:air(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/\/\/api\.open-meteo\.com/, r=>r.fulfill({json:wx(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/waterservices\.usgs\.gov/, r=>r.fulfill({json:usgs(), headers:{"access-control-allow-origin":"*"}}));
