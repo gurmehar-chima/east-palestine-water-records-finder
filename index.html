@@ -25,7 +25,7 @@
 -->
 <style>
 :root{
-  --fs:20px;
+  --fs:22px;
   --bg:#f5f2ea;
   --paper:#fffdf8;
   --ink:#1c2830;
@@ -61,7 +61,27 @@
   --flag:#f0c36a; --flag-soft:#2f2714; --cta:#d9822f; --cta-ink:#1a0f05; --focus:#7ab8ff; --demo:#05080a; --ok:#4fd08a;
   --shadow:none; color-scheme:dark;
 }
-:root[data-contrast="high"]{
+
+/* ---- Layout B ("guided") palette: lake blue + sunflower ---- */
+:root[data-layout="guided"]{
+  --fs:24px;
+  --bg:#eef2f0; --paper:#ffffff; --ink:#15212a; --ink-soft:#46545e; --line:#cfd8d5;
+  --brand:#1d4f91; --brand-ink:#ffffff; --brand-soft:#e3ecf8; --t1:#1d4f91; --t1-soft:#e3ecf8;
+  --cta:#f0b429; --cta-ink:#1b1400; --focus:#c2410c;
+}
+@media (prefers-color-scheme: dark){
+  :root[data-layout="guided"]:not([data-theme="light"]){
+    --bg:#0f1620; --paper:#18222e; --ink:#eef2f6; --ink-soft:#a8b4c0; --line:#2f3d4c;
+    --brand:#8db8f2; --brand-ink:#0b1626; --brand-soft:#1b2a3d; --t1:#8db8f2; --t1-soft:#1b2a3d;
+    --cta:#f0b429; --cta-ink:#1b1400;
+  }
+}
+:root[data-layout="guided"][data-theme="dark"]{
+  --bg:#0f1620; --paper:#18222e; --ink:#eef2f6; --ink-soft:#a8b4c0; --line:#2f3d4c;
+  --brand:#8db8f2; --brand-ink:#0b1626; --brand-soft:#1b2a3d; --t1:#8db8f2; --t1-soft:#1b2a3d;
+  --cta:#f0b429; --cta-ink:#1b1400;
+}
+html:root[data-contrast="high"][data-contrast]{
   color-scheme:dark;
   --bg:#000; --paper:#0b0b0b; --ink:#ffffff; --ink-soft:#f0f0f0; --line:#ffffff;
   --brand:#ffe14d; --brand-ink:#000; --brand-soft:#1a1a1a;
@@ -215,10 +235,11 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 /* footer action bar */
 .actionbar{position:sticky;bottom:0;background:var(--paper);border-top:3px solid var(--line);z-index:5}
 .actionbar .wrap{display:flex;gap:12px;align-items:center;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
-.actionbar .btn-cta{font-size:1.05rem;flex:1 1 360px}
+.actionbar .btn-cta{font-size:1rem;flex:1 1 auto}
+.actionbar .btn{min-height:60px;padding:0 18px;white-space:nowrap;font-size:.92rem}
 .actionbar .btn-ghost{flex:0 1 auto}
-.footnote{width:100%;font-size:.78rem;color:var(--ink-soft);text-align:center;margin-top:2px}
-.staff-btn{min-height:56px;min-width:56px;border-radius:12px;border:2px dashed var(--line);background:transparent;cursor:pointer;font-size:.8rem;color:var(--ink-soft)}
+.footnote{order:9;flex:1 1 300px;font-size:.78rem;color:var(--ink-soft);margin:0}
+.staff-btn{order:10;min-height:44px;min-width:56px;border-radius:12px;border:2px dashed var(--line);background:transparent;cursor:pointer;font-size:.8rem;color:var(--ink-soft)}
 
 /* modal */
 .modal-back{position:fixed;inset:0;background:rgba(15,22,28,.55);display:grid;place-items:center;z-index:50;padding:20px}
@@ -256,7 +277,7 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
 .duo .card{display:flex;flex-direction:column;min-width:0}
 .duo h1{font-size:1.6rem;text-wrap:balance}
-.eyebrow{font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
+.eyebrow{font-size:.86rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--brand)}
 .panel-ai{border-color:var(--t3)}
 .panel-ai .eyebrow{color:var(--t3)}
 .panel-ai .search input{border-color:var(--t3)}
@@ -269,7 +290,7 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .rlink{display:flex;flex-direction:column;gap:4px;padding:16px 18px;border:2px solid var(--line);border-radius:12px;background:var(--paper);color:var(--ink);text-decoration:none;min-width:0}
 .rlink:hover{border-color:var(--brand)}
 .rlinks.compact .rlink{padding:10px 14px}
-.rlink-org{font-size:.76rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.rlink-org{font-size:.82rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
 .rlink-title{font-size:1.05rem;color:var(--brand);line-height:1.3}
 .rlink-what{font-size:.9rem}
 .rlink-url{font-size:.8rem;color:var(--ink-soft);overflow-wrap:anywhere}
@@ -307,7 +328,7 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .live-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .ltiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;margin-top:14px}
 .ltile{border:2px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--bg);display:flex;flex-direction:column;gap:2px;min-width:0}
-.ltile .k{font-size:.78rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.ltile .k{font-size:.86rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
 .ltile .v{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
 .ltile .v small{font-size:.8rem;font-weight:600;color:var(--ink-soft)}
 .ltile .s{font-size:.84rem;color:var(--ink-soft)}
@@ -323,16 +344,16 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .chart-host svg{display:block;max-width:100%;height:auto;touch-action:pan-y}
 .chart-host .grid{stroke:var(--line);stroke-width:1}
 .chart-host .grid.day{stroke-dasharray:2 4}
-.chart-host .ax{fill:var(--ink-soft);font-size:11px;font-variant-numeric:tabular-nums}
-.chart-host .ln{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart-host .ax{fill:var(--ink-soft);font-size:14px;font-variant-numeric:tabular-nums}
+.chart-host .ln{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
 .chart-host .area{fill:var(--brand);opacity:.1}
 .chart-host .endpt{fill:var(--brand);stroke:var(--paper);stroke-width:2}
-.chart-host .end-l{fill:var(--ink);font-weight:700;font-size:12px}
+.chart-host .end-l{fill:var(--ink);font-weight:700;font-size:16px}
 .chart-host .thr{stroke:var(--ink-soft);stroke-dasharray:5 4;stroke-width:1}
-.chart-host .thr-l{font-size:10.5px}
+.chart-host .thr-l{font-size:13px}
 .chart-host .xh{stroke:var(--ink);stroke-width:1}
 .chart-host .xh-dot{fill:var(--paper);stroke:var(--brand);stroke-width:2.5}
-.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:8px;padding:6px 10px;font-size:.8rem;display:flex;flex-direction:column;white-space:nowrap}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);border-radius:10px;padding:8px 12px;font-size:.9rem;display:flex;flex-direction:column;white-space:nowrap}
 .tip b{font-size:.95rem}
 .tip[hidden]{display:none}
 .nums summary{cursor:pointer;font-size:.85rem;font-weight:600;color:var(--brand);min-height:44px;display:flex;align-items:center}
@@ -341,6 +362,107 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .linkish{background:none;border:0;padding:0;text-decoration:underline;cursor:pointer;font:inherit}
 .live-wrap.refreshing{opacity:.55}
 @media (prefers-reduced-motion:reduce){.cursor{animation:none}}
+
+
+/* ---- easier reading ---- */
+.tool-label{font-size:.85rem;font-weight:700;color:var(--ink-soft);align-self:center}
+.which{display:flex;flex-wrap:wrap;gap:8px 26px;align-items:center;margin-top:18px;padding:16px 22px;border-radius:14px;background:var(--brand-soft);border:2px solid var(--line);font-size:1.02rem}
+.which .linkish{font-weight:700}
+.info{border:0;background:none;color:var(--brand);font-weight:700;font-size:.9rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:0;min-height:44px;align-self:flex-start}
+.trend{font-size:.9rem;font-weight:700;color:var(--ink)}
+.live-head h2,.live-head h1{display:flex;align-items:center}
+.live-dot{display:inline-block;flex:none;width:14px;height:14px;border-radius:50%;background:var(--ok);margin-right:12px}
+.plain-live{font-size:1.15rem;margin:14px 0 0;padding:16px 20px;border-left:6px solid var(--ok);background:var(--paper);border-radius:10px;max-width:75ch}
+.ltile.loading .v{color:transparent;border-radius:8px;background:var(--line);min-height:2.2rem}
+.aqi-card{margin-top:14px}
+.aqi-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.aqi-top .k{display:block;font-size:.86rem;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em}
+.aqi-top .v{display:block;font-size:2.4rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.aqi-scale{padding-top:40px;margin-top:6px}
+.aqi-track{position:relative;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));height:20px}
+.aqi-track span:first-child{border-radius:999px 0 0 999px}
+.aqi-track span:nth-child(6){border-radius:0 999px 999px 0}
+.aqi-marker{position:absolute;top:-10px;width:0;height:40px;transition:left 1.1s cubic-bezier(.2,.8,.2,1)}
+.aqi-marker::before{content:"";position:absolute;left:-3px;top:0;width:6px;height:40px;border-radius:3px;background:var(--ink);box-shadow:0 0 0 2px var(--paper)}
+.aqi-marker b{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:2px 10px;border-radius:8px;font-size:.95rem;white-space:nowrap}
+.aqi-labels{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));overflow-wrap:anywhere;hyphens:auto;gap:6px;margin-top:10px;font-size:.8rem;color:var(--ink-soft);text-align:center;line-height:1.25}
+.aqi-labels .on{color:var(--ink);font-weight:800}
+.aqi-help{font-size:1rem;margin:10px 0 0}
+.bottom-nav{display:flex;gap:12px;flex-wrap:wrap;margin-top:32px;padding-top:20px;border-top:2px solid var(--line)}
+.person-hero{display:flex;gap:22px;align-items:center;padding:24px;border-radius:18px;background:var(--t2-soft);border:2px solid var(--t2);margin-top:16px;flex-wrap:wrap}
+.person-hero .tour-icon{margin:0;background:var(--paper);color:var(--t2)}
+.person-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.link-note{font-size:.95rem;padding:10px 14px;border-radius:10px;background:var(--bg);border:2px dashed var(--line);margin:8px 0 0}
+.welcome-points{display:grid;gap:12px;margin:16px 0}
+.welcome-points div{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:12px;background:var(--bg);font-size:1.05rem}
+.welcome-points div::before{content:"";flex:none;width:12px;height:12px;margin-top:.45em;border-radius:50%;background:var(--brand)}
+.fine{font-size:.85rem;color:var(--ink-soft)}
+.fine li{margin:.2rem 0}
+.tour{text-align:center}
+.tour-icon{width:100px;height:100px;margin:6px auto 14px;border-radius:30px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}
+.tour-icon svg{width:60px;height:60px}
+.tour-step{font-weight:700;color:var(--ink-soft);font-size:.9rem;letter-spacing:.05em;text-transform:uppercase;margin:0}
+.tour-text{font-size:1.2rem;max-width:46ch;margin:0 auto 14px}
+.tour-dots{display:flex;gap:8px;justify-content:center;margin:12px 0}
+.tour-dots i{width:12px;height:12px;border-radius:6px;background:var(--line);transition:width .25s,background .25s}
+.tour-dots i.on{background:var(--brand);width:32px}
+.tour-nav{justify-content:space-between}
+.idle-box{text-align:center}
+.idle-ring{display:flex;justify-content:center;margin:6px 0 18px}
+.idle-ring svg{width:76px;height:76px;transform:rotate(-90deg)}
+.idle-ring circle{fill:none;stroke:var(--brand);stroke-width:5;stroke-dasharray:119.4;stroke-dashoffset:0;stroke-linecap:round}
+.g-bar{display:none}
+/* ---- Layout B ("guided") ---- */
+:root[data-layout="guided"] .tabs [data-tab]{display:none}
+:root[data-layout="guided"] .tabs .wrap{padding-top:10px;padding-bottom:10px}
+.g-where{align-self:center;font-weight:700;color:var(--ink-soft);margin-left:8px}
+.g-where b{color:var(--ink)}
+:root[data-layout="guided"] .g-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tabs .g-bar .btn{border:2px solid var(--line);border-bottom:2px solid var(--line);background:var(--paper);color:var(--ink);border-radius:14px;min-height:60px;padding:0 22px}
+:root[data-layout="guided"] .g-bar .btn{min-height:60px;padding:0 20px}
+:root[data-layout="guided"] h1,:root[data-layout="guided"] h2,:root[data-layout="guided"] h3{font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif;letter-spacing:0}
+:root[data-layout="guided"] .brand-mark{border-radius:50%}
+.g-hello h1{font-size:2.3rem;text-wrap:balance}
+.g-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:22px 0}
+.g-choice{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;min-height:220px;padding:26px 28px;border-radius:24px;border:3px solid var(--line);background:var(--paper);cursor:pointer;box-shadow:var(--shadow);color:var(--ink)}
+.g-choice:hover:not(:disabled){border-color:var(--brand)}
+.g-choice:disabled{opacity:.5;cursor:not-allowed}
+.g-choice b{font-size:1.35rem;line-height:1.25;font-family:Charter,"Bitstream Charter","Sitka Text",Cambria,Georgia,serif}
+.g-choice > span:not(.g-ic){color:var(--ink-soft);font-size:1rem}
+.g-ic{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}
+.g-ic svg{width:46px;height:46px}
+.c-ask .g-ic{background:var(--t3-soft);color:var(--t3)}
+.c-live .g-ic{background:color-mix(in srgb,var(--ok) 14%,var(--paper));color:var(--ok)}
+.c-person .g-ic{background:var(--t2-soft);color:var(--t2)}
+.g-more{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:22px}
+.g-search input{min-height:88px;font-size:1.25rem}
+.g-search .btn{min-height:88px;padding:0 34px;font-size:1.15rem}
+.layout-link{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+@media (prefers-reduced-motion:no-preference){
+  #main.enter > *{animation:rise .42s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*50ms)}
+  #main.enter .stagger > *{animation:rise .45s cubic-bezier(.2,.7,.2,1) both;animation-delay:calc(var(--i,0)*60ms + 120ms)}
+  .modal-back{animation:fade .2s ease-out}
+  .modal{animation:modalIn .3s cubic-bezier(.2,.8,.2,1)}
+  .tour{animation:slideIn .32s cubic-bezier(.2,.8,.2,1)}
+  .bubble{animation:pop .3s cubic-bezier(.2,.8,.2,1) both}
+  .bubble.settled{animation:none}
+  .live-dot{animation:pulse 2.2s ease-out infinite}
+  .ltile.loading .v{background:linear-gradient(90deg,var(--line) 25%,var(--paper) 50%,var(--line) 75%);background-size:200% 100%;animation:shimmer 1.3s linear infinite}
+  .g-choice{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+  .g-choice:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 10px 30px rgba(20,40,60,.12)}
+  .rlink{transition:transform .15s ease,border-color .15s ease}
+  .rlink:hover{transform:translateY(-2px)}
+  .idle-ring circle{animation:ring 30s linear forwards}
+  .wind-arrow{transition:transform 1s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(calc(var(--dir,1) * 40px))}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ok) 55%,transparent)}100%{box-shadow:0 0 0 16px transparent}}
+  @keyframes shimmer{to{background-position:-200% 0}}
+  @keyframes ring{to{stroke-dashoffset:119.4}}
+}
 
 /* print preview (shared-link mode) */
 .sheet-preview{background:#fff;color:#111;border:2px solid var(--line);border-radius:10px;padding:22px 26px;margin-top:12px;font-size:.9rem;overflow-x:auto}
@@ -371,6 +493,8 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 @media (max-width:1000px){
   .home,.answer-grid,.duo,.lgrid,.rlinks,.cando.compact{grid-template-columns:minmax(0,1fr)}
   .ai-set{grid-template-columns:1fr}
+  .g-choices,.person-grid{grid-template-columns:minmax(0,1fr)}
+  .g-choice{min-height:0}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .doclist,.glossary{grid-template-columns:1fr}
 }
@@ -379,10 +503,14 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
   h1{font-size:1.6rem}
   .search{flex-direction:column}
   .pair,.choice-grid,.stats{grid-template-columns:1fr}
+  .aqi-labels{font-size:.72rem}
+  .aqi-labels span:not(.on){color:transparent}
+  .aqi-labels span.on{color:var(--ink);white-space:nowrap;overflow:visible}
+  .tool-label{display:none}
   .tiles{grid-template-columns:1fr}
   .tools{margin-left:0}
   .actionbar{position:static}
-  .actionbar .btn{min-height:56px;flex:1 1 45%;padding:0 12px}
+  .actionbar .btn{min-height:56px;flex:1 1 45%;padding:0 12px;white-space:normal}
   .actionbar .btn-cta{flex-basis:100%}
   .tool{padding:0 12px}
 }
@@ -394,7 +522,7 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 </head>
 <body>
 
-<div class="demo-strip" role="note">PROTOTYPE FOR DESIGN REVIEW · All test results, documents and contact slots shown are fictional placeholders · Not for public use until the release gate and Expert Review Panel sign-off are complete</div>
+<div class="demo-strip" role="note">PROTOTYPE FOR DESIGN REVIEW · Library-binder test records are fictional placeholders · Not for public use until the release gate and Expert Review Panel sign-off are complete<span id="layoutSwitch"></span></div>
 
 <header class="topbar">
   <div class="wrap">
@@ -408,10 +536,11 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
       </span>
     </button>
     <div class="tools" role="toolbar" aria-label="Display options">
-      <div class="size-group" role="group" aria-label="Text size">
-        <button data-size="20" aria-pressed="true" aria-label="Normal text">A</button>
-        <button data-size="24" aria-pressed="false" aria-label="Large text" style="font-size:1.15em">A</button>
-        <button data-size="28" aria-pressed="false" aria-label="Extra large text" style="font-size:1.35em">A</button>
+      <span class="tool-label" id="sizeLabel">Text size</span>
+      <div class="size-group" role="group" aria-labelledby="sizeLabel">
+        <button data-mult="1" aria-pressed="true" aria-label="Normal text">A</button>
+        <button data-mult="1.18" aria-pressed="false" aria-label="Large text" style="font-size:1.15em">A</button>
+        <button data-mult="1.36" aria-pressed="false" aria-label="Extra large text" style="font-size:1.35em">A</button>
       </div>
       <button class="tool" id="contrastBtn" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 3v18a9 9 0 0 0 0-18z" fill="currentColor"/></svg>
@@ -419,18 +548,28 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
       </button>
       <button class="tool" id="readBtn" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
-        <span>Read aloud</span>
+        <span>Listen</span>
+      </button>
+      <button class="tool" id="helpBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.8"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg>
+        How to use
       </button>
     </div>
   </div>
 </header>
 
 <nav class="tabs" aria-label="Sections"><div class="wrap">
+  <div class="g-bar">
+    <button class="btn btn-ghost" data-act="home">⌂ Home</button>
+    <button class="btn btn-ghost" data-act="back">← Back</button>
+    <span class="g-where" id="gWhere"></span>
+  </div>
   <button data-act="home" data-tab="home">Search</button>
-  <button data-act="ai" data-tab="ai">AI helper</button>
-  <button data-act="live" data-tab="live">Live conditions</button>
-  <button data-act="docs" data-tab="docs">Documents</button>
+  <button data-act="ai" data-tab="ai">Ask a question</button>
+  <button data-act="live" data-tab="live">Today's conditions</button>
+  <button data-act="person" data-tab="person">Talk to a person</button>
   <button data-act="glossary" data-tab="glossary">Word list</button>
+  <button data-act="docs" data-tab="docs">Library binder</button>
 </div></nav>
 
 <div class="wrap" id="banners" aria-live="polite"></div>
@@ -447,7 +586,7 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
     </button>
     <button class="btn btn-ghost" id="reportBtn">Report a problem</button>
     <button class="btn btn-ghost" id="limitsBtn">Known limitations</button>
-    <button class="btn btn-ghost" id="endBtn">End session</button>
+    <button class="btn btn-ghost" id="endBtn">I'm done — clear screen</button>
     <button class="staff-btn" id="staffBtn" title="Library staff controls">Staff</button>
     <p class="footnote">This kiosk finds and explains official public information. It does not give medical, legal, safety or engineering advice. Nothing you type is saved.</p>
   </div>
@@ -578,6 +717,24 @@ const GLOSSARY = [
   {id:"analyte", term:"Analyte", match:["analyte","parameter"],
    def:"The chemical a lab is testing for.",
    ex:"In a results table, the analyte column lists chemical names."},
+  {id:"aqi", term:"Air Quality Index (AQI)", match:["air quality index","\\baqi\\b"],
+   def:"A number from 0 to 500 that U.S. EPA uses to describe how clean or polluted the air is. Lower numbers mean cleaner air. EPA groups the numbers into named ranges, such as “Good” (0–50) and “Moderate” (51–100).",
+   ex:"The kiosk's air numbers are computer-model estimates for the wider area, not readings from a monitor in East Palestine."},
+  {id:"pm25", term:"PM2.5 (fine dust)", match:["pm2.5","pm 2.5","fine particles","fine dust","particulate"],
+   def:"Tiny bits of dust, smoke and soot floating in the air, much thinner than a human hair. They are measured in micrograms per cubic meter of air (µg/m³).",
+   ex:"Smoke from fires and exhaust from vehicles add PM2.5 to the air."},
+  {id:"ozone", term:"Ozone (at ground level)", match:["ozone"],
+   def:"A gas that forms near the ground when sunlight reacts with pollution from cars and factories. It is usually higher on hot, sunny afternoons.",
+   ex:"This is different from the ozone layer high up in the sky."},
+  {id:"no2", term:"Nitrogen dioxide", match:["nitrogen dioxide","\\bno2\\b"],
+   def:"A gas that comes mostly from burning fuel in cars, trucks and furnaces.",
+   ex:"Levels are often higher near busy roads."},
+  {id:"cfs", term:"ft³/s (cubic feet per second)", match:["\\bcfs\\b","cubic feet per second","ft3/s","ft³/s","stream flow","streamflow"],
+   def:"How much water flows past a point in a creek each second. One cubic foot of water is about 7½ gallons.",
+   ex:"After heavy rain the flow goes up. In dry weather it goes down."},
+  {id:"gage", term:"Gage height (water level)", match:["gage height","gauge height","water level"],
+   def:"How high the water's surface is at the stream gauge, in feet. It is measured from a fixed point at the gauge, not from the bottom of the creek.",
+   ex:"A rising gage height means the creek is getting higher."},
   {id:"cas", term:"CAS number", match:["cas number","cas","cas #"],
    def:"An ID number given to each chemical so it can be identified without confusion, even if it has several names.",
    ex:"Vinyl chloride's CAS number is 75-01-4."}
@@ -703,6 +860,7 @@ function ask(q){
   if(!q) return;
   if(state.emergency) return renderEmergency();
   if(!qaAvailable()) return renderPaused();
+  state.backTo = state.view==="searchpage" ? "searchpage" : "home";
   renderSearch(q);   // Tier-3 gate runs first inside renderSearch
 }
 
@@ -722,20 +880,28 @@ const ICONS = {
 
 function setMain(html, printable){
   stopSpeech();
-  $("#main").innerHTML = html;
+  const bottom = state.view!=="home" ? `<div class="bottom-nav">${LAYOUT==="guided"?`<button class="btn btn-ghost" data-act="back">← Back</button><button class="btn btn-ghost" data-act="home">⌂ Home</button>`:`<button class="btn btn-ghost" data-act="home">← Back to the start screen</button>`}<button class="btn btn-ghost" data-act="top">↑ Back to top</button></div>` : "";
+  $("#main").innerHTML = html + bottom;
   state.printable = printable || null;
   markTab();
+  animateIn($("#main"));
+  clearTimeout(state.enterT); state.enterT = setTimeout(()=>{ const m=$("#main"); if(m) m.classList.remove("enter"); }, 1600);
   $("#main").focus({preventScroll:true});
   window.scrollTo({top:0});
   renderBanners();
 }
 
 function markTab(){
-  const map = {home:"home", answer:"home", ai:"ai", live:"live", docs:"docs", doc:"docs", limits:"docs", glossary:"glossary"};
+  const map = {home:"home", answer:"home", searchpage:"home", ai:"ai", live:"live", person:"person", docs:"docs", doc:"docs", limits:"docs", glossary:"glossary"};
   const cur = map[state.view] || "";
+  const names = {home:"Start", searchpage:"Look something up", answer:"Search results", ai:"Ask a question", live:"Today's conditions", person:"Talk to a person", docs:"Library binder", doc:"Library binder", limits:"Drinking-water limits", glossary:"Word list", emergency:"Official advisory"};
+  const gw = $("#gWhere"); if(gw) gw.innerHTML = `You are here: <b>${names[state.view]||"Start"}</b>`;
   document.querySelectorAll(".tabs [data-tab]").forEach(b=>{ if(b.dataset.tab===cur) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
 }
-function backBtn(){ return `<button class="btn btn-ghost back" data-act="home">← Back to search</button>`; }
+function backBtn(){
+  if(LAYOUT==="guided") return "";   // Layout B has Home and Back in the bar at the top
+  return `<button class="btn btn-ghost back" data-act="home">← Back to the start screen</button>`;
+}
 
 function dateBanner(rec){
   const d = DOCS[rec.doc];
@@ -821,7 +987,7 @@ function sidePanel(ids, extra=""){
 }
 
 function tierBadge(t){
-  if(t===1) return `<span class="badge t1">● Found in official records</span>`;
+  if(t===1) return `<span class="badge t1">● Official sources found</span>`;
   if(t===2) return `<span class="badge t2">● Librarian help recommended</span>`;
   if(t===3) return `<span class="badge t3">● Needs a qualified person</span>`;
   return `<span class="badge none">● No matching record</span>`;
@@ -834,6 +1000,7 @@ function renderHome(){
   state.view = "home";
   if(state.emergency) return renderEmergency();
   if(sunset()) return renderDocs(true);
+  if(LAYOUT==="guided") return renderHomeGuided();
   const paused = !qaAvailable();
   const sChips = ["How do I get my well tested?","Vinyl chloride in village tap water","Soil test results","What does “not detected” mean?","Who do I call about the cleanup?"];
   const aChips = ["What chemicals were in the train?","Explain what an MCL is","What's the air quality right now?"];
@@ -842,11 +1009,11 @@ function renderHome(){
     <section class="card panel-search">
       <span class="eyebrow">Search</span>
       <h1>Find official information</h1>
-      <p class="muted">Type any question or topic. You'll get links to the official pages that have the answer, plus matching records from the library's binder.</p>
+      <p class="muted">Type a topic or question. You'll get <b>links to official websites</b> that have the answer.</p>
       ${paused ? `<div class="banner"><div><strong>Searching is paused right now.</strong>You can still browse documents and live conditions, or ask at the reference desk.</div></div>` : `
       <form class="search" id="searchForm" role="search" autocomplete="off">
         <label for="q" style="position:absolute;left:-9999px">Search official information</label>
-        <input id="q" name="q" placeholder="For example: well testing, soil results, vinyl chloride" maxlength="200">
+        <input id="q" name="q" placeholder="Type a topic, like well testing" maxlength="200">
         <button class="btn btn-primary" type="submit">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
           Search
@@ -855,13 +1022,13 @@ function renderHome(){
       <div class="chips">${sChips.map(c=>`<button class="chip" data-q="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
     </section>
     <section class="card panel-ai">
-      <span class="eyebrow">AI helper</span>
-      <h1>Ask the AI helper</h1>
-      <p class="muted">Ask in your own words. It explains official information in plain language and shows its sources. It can make mistakes.</p>
+      <span class="eyebrow">Ask a question · AI helper</span>
+      <h1>Ask a question in your own words</h1>
+      <p class="muted">A computer program <b>writes an answer for you</b> in plain language and shows where it came from. It can make mistakes.</p>
       ${paused ? `<div class="banner"><div><strong>The AI helper is paused right now.</strong>Please ask at the reference desk.</div></div>` : `
       <form class="search" id="aiHomeForm" autocomplete="off">
         <label for="aiHomeQ" style="position:absolute;left:-9999px">Ask the AI helper</label>
-        <input id="aiHomeQ" placeholder="For example: what does this water report mean?" maxlength="400">
+        <input id="aiHomeQ" placeholder="Type your question here" maxlength="400">
         <button class="btn btn-primary" type="submit">Ask</button>
       </form>
       <div class="chips">${aChips.map(c=>`<button class="chip" data-aiq="${esc(c)}">${esc(c)}</button>`).join("")}</div>`}
@@ -869,8 +1036,12 @@ function renderHome(){
       <div class="webllm-slot"></div>
     </section>
   </div>
+  <div class="which"><b>Not sure which to use?</b>
+    <span><b>Search</b> gives you links to official websites.</span>
+    <span><b>Ask a question</b> writes an answer for you.</span>
+    <span>Or <button class="linkish" data-act="person">talk to a person</button>. Library staff are happy to help.</span></div>
   <section class="card live-strip" id="liveStrip"></section>
-  <div class="tiles">
+  <div class="tiles stagger">
     <button class="tile" data-q="Village tap water test results" ${paused?"disabled":""}><span class="ic">${ICONS.tap}</span><b>Village tap water</b><span>Public water system results</span></button>
     <button class="tile" data-q="Private well testing and results" ${paused?"disabled":""}><span class="ic">${ICONS.well}</span><b>Private wells</b><span>Testing programs and results</span></button>
     <button class="tile" data-q="Stream and creek sampling" ${paused?"disabled":""}><span class="ic">${ICONS.stream}</span><b>Streams</b><span>Surface water monitoring</span></button>
@@ -1205,9 +1376,10 @@ function renderSearch(q){
           <div class="btn-row"><button class="btn btn-cta" data-act="print">Print my Reference Sheet</button><button class="btn btn-ghost" data-aiq="${esc(q)}">Ask the AI helper to explain</button></div></div>`:""}
         ${emotion?supportCard():""}
         <h2>${matched?"Official sources for your question":"We didn't find a close match"}</h2>
-        <p class="muted">${matched?"These pages come from the agencies that collect and publish the data. Tap one to open it.":"Here are the main official sources for East Palestine. Try different words, ask the AI helper, or ask a librarian."}</p>
+        <p class="muted">${matched?"These pages come from the agencies that collect and publish the data.":"Here are the main official sources for East Palestine. Try different words, ask a question, or ask a librarian."}</p>
+        <p class="link-note">Tap a box to open that agency's website in a new tab. <b>To come back here, close that tab.</b> You can also print this page to take the links home.</p>
         ${wantsLive?liveCallout():""}
-        <div class="rlinks">${links.map(linkCard).join("")}</div>
+        <div class="rlinks stagger">${links.map(linkCard).join("")}</div>
         ${terms.map(g=>`<div class="plain" style="margin-top:18px"><span class="lbl">Word list</span><h3 style="margin-top:4px">${esc(g.term)}</h3><p>${esc(g.def)}</p><p class="muted" style="font-size:.95rem;margin-bottom:0">${esc(g.ex)}</p></div>`).join("")}
         ${r.absent.map(w=>`<div class="absent"><p style="margin:0"><b>The library's binder has no records on “${esc(w)}”.</b> That means no document about it has been loaded here, not that nobody tested for it. Try the sources above or ask a librarian.</p></div>`).join("")}
         ${(hasRecords||standardsIds.length)?`<h2 style="margin-top:28px">In the library's reference binder</h2>
@@ -1300,10 +1472,10 @@ function webllmBoxHTML(){
     const pct = Math.round((w.progress||0)*100);
     return `<div class="wl-box"><b>Downloading the AI helper to this device… ${pct}%</b>
       <div class="wl-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div>
-      <span class="muted">This happens once. Later visits load from this device's storage. ${esc((w.text||"").slice(0,90))}</span></div>`;
+      <span class="muted">This takes a few minutes the first time. You only download it once; next time it starts faster.</span></div>`;
   }
   if(w.error) return `<div class="wl-box"><b>The AI helper couldn't start on this device.</b><span class="muted">${esc(w.error)}. Try Chrome, Edge or Safari 26 or newer on a computer, or use Search.</span><button class="btn btn-ghost" data-act="webllm-load">Try again</button></div>`;
-  return `<div class="wl-box"><b>Turn on the AI helper</b><span class="muted">It runs entirely in this browser, so your questions never leave this device. The first time, it downloads a model (${isMobileDevice()?"about 0.9 GB":"about 1–2 GB"}). Use Wi-Fi.</span><button class="btn btn-primary" data-act="webllm-load">Download and turn on</button></div>`;
+  return `<div class="wl-box"><b>Turn on the AI helper</b><span class="muted">The AI helper runs on this device, so your questions stay private. The first time, it needs to download (${isMobileDevice()?"about 0.9 GB":"about 2 GB"}, a few minutes on Wi-Fi).</span><button class="btn btn-primary" data-act="webllm-load">Download and turn on</button></div>`;
 }
 function renderWebLLM(){ document.querySelectorAll(".webllm-slot").forEach(el=>{ el.innerHTML = webllmBoxHTML(); }); }
 
@@ -1415,8 +1587,8 @@ function renderAI(){
     ${backBtn()}
     <div class="answer-grid">
       <section>
-        <h1>Ask the AI helper</h1>
-        <p class="muted" style="font-size:1.05rem">Ask in your own words. The AI helper explains official information in plain language and shows where it came from. It can make mistakes, so always check the linked source.</p>
+        <h1>Ask a question</h1>
+        <p class="muted" style="font-size:1.05rem;max-width:62ch">Type your question the way you'd ask a person. The <b>AI helper</b> is a computer program that writes an answer in plain language and shows where the information came from. It can make mistakes, so check the linked source or ask a librarian.</p>
         <p class="ai-status"></p>
         <div class="webllm-slot"></div>
         <div class="chat" id="aiLog" aria-live="polite">${AI.log.length?AI.log.map(m=>m.html).join(""):`<div class="bubble bot"><b>Hi.</b> I can help you find and understand public information about water, air and soil in East Palestine. I can't tell you whether something is safe for you or give medical or legal advice, but I can point you to people who can.</div>`}</div>
@@ -1454,7 +1626,7 @@ function aiAppend(role, html){
   return m;
 }
 function aiUpdateLast(html){
-  const m = AI.log[AI.log.length-1]; m.html = `<div class="bubble bot">${html}</div>`;
+  const m = AI.log[AI.log.length-1]; m.html = `<div class="bubble bot settled">${html}</div>`;
   const log = $("#aiLog"); if(log && log.lastElementChild){ log.lastElementChild.outerHTML = m.html; log.scrollTop = log.scrollHeight; }
   state.printable = aiPrintable();
 }
@@ -1683,24 +1855,27 @@ function liveCallout(){
   return `<div class="card" style="margin-top:18px"><h3>Live conditions</h3><p style="font-size:.95rem">See current air quality, weather and stream flow for East Palestine, updated automatically.</p><button class="btn btn-primary" data-act="live">Open live conditions</button></div>`;
 }
 
-function tile(label, value, sub, extra=""){ return `<div class="ltile">${extra}<span class="k">${label}</span><span class="v">${value}</span><span class="s">${sub}</span></div>`; }
+function tile(label, value, sub, extra="", term="", loading=false){ return `<div class="ltile${loading?" loading":""}">${extra}<span class="k">${label}</span><span class="v">${value}</span><span class="s">${sub}</span>${term?`<button class="info" data-term="${term}">What is this?</button>`:""}</div>`; }
+const cap = s => s ? s[0].toUpperCase()+s.slice(1) : s;
 function aqiChip(v){ const c=aqiCat(v); return `<span class="aqi-chip"><i style="background:${c.sw}"></i>${esc(c.label)}</span>`; }
 const last = s => s && s.length ? s[s.length-1] : null;
 
 function renderLiveStrip(){
   const el = $("#liveStrip"); if(!el) return;
-  const a = LIVE.air, w = LIVE.wx, wt = LIVE.water;
-  const lf = wt && wt.series["00060"] ? last(wt.series["00060"]) : null;
+  const a = LIVE.air, w = LIVE.wx, wt = LIVE.water, loading = !LIVE.lastCheck;
+  const flow = wt && wt.series["00060"], lf = last(flow);
   el.innerHTML = `
-    <div class="live-head"><h2>Right now in East Palestine</h2><span class="muted live-meta">${LIVE.lastCheck?`Checked ${fmtTime(LIVE.lastCheck)} · <span id="liveNext"></span>`:"Loading live readings…"}</span></div>
+    <div class="live-head"><h2><span class="live-dot" aria-hidden="true"></span>Today in East Palestine</h2><span class="muted live-meta">${LIVE.lastCheck?`Updated ${fmtTime(LIVE.lastCheck)} · <span id="liveNext"></span>`:"Loading today's readings…"}</span></div>
     ${liveAllFailed()?liveUnavailableHTML():`
-    <div class="ltiles">
-      ${tile("Air Quality Index", a?a.current.us_aqi:"—", a?"US AQI · modeled estimate":"", a?aqiChip(a.current.us_aqi):"")}
-      ${tile("Fine particles (PM2.5)", a?fmtNum(a.current.pm2_5)+" <small>µg/m³</small>":"—", a?"Modeled estimate":"")}
-      ${tile("Temperature & wind", w?Math.round(w.current.temperature_2m)+"°F":"—", w?`Wind ${Math.round(w.current.wind_speed_10m)} mph from the ${compass(w.current.wind_direction_10m)}`:"")}
-      ${tile("Little Beaver Creek flow", lf?fmtNum(lf.v)+" <small>ft³/s</small>":"—", lf?`USGS gauge · ${fmtTime(lf.t)}`:(LIVE.err.water?"Gauge not reporting":""))}
+    ${loading?"":`<p class="plain-live">${livePlainSummary()}</p>`}
+    <div class="ltiles stagger">
+      ${tile("Air quality", a?countHTML(a.current.us_aqi):"—", a?"Lower numbers mean cleaner air":"", a?aqiChip(a.current.us_aqi):"", "aqi", loading)}
+      ${tile("Temperature", w?countHTML(Math.round(w.current.temperature_2m))+"°F":"—", w?`${cap(windWord(w.current.wind_speed_10m))} from the ${compassWord(w.current.wind_direction_10m)}`:"", "", "", loading)}
+      ${tile("Fine dust in the air", a?countHTML(a.current.pm2_5,1)+" <small>µg/m³</small>":"—", a?(trendHTML(trend(a.series.pm2_5,6),6)||"Computer-model estimate"):"", "", "pm25", loading)}
+      ${tile("Little Beaver Creek flow", lf?countHTML(Math.round(lf.v))+" <small>ft³/s</small>":"—", lf?(trendHTML(trend(flow,6),6)||"How much water is flowing"):(LIVE.err.water?"Gauge not reporting":""), "", "cfs", loading)}
     </div>`}
-    <button class="btn btn-ghost" data-act="live" style="margin-top:12px">See live charts →</button>`;
+    <button class="btn btn-ghost" data-act="live" style="margin-top:14px">See charts and details →</button>`;
+  if(LIVE.pendingAnim && !loading){ LIVE.pendingAnim = false; animateNumbers(el); }
 }
 function liveUnavailableHTML(){
   let embedded=false; try{ embedded = window.self!==window.top; }catch(e){ embedded=true; }
@@ -1710,9 +1885,10 @@ function liveUnavailableHTML(){
 function renderLive(){
   state.view = "live";
   if(state.emergency) return renderEmergency();
+  LIVE.pendingAnim = true;
   setMain(`${backBtn()}
-    <div class="live-head"><div><h1>Live conditions in East Palestine</h1>
-      <p class="muted">Updates automatically every 5 minutes. These are automated readings, not official determinations, and they don't say whether conditions are safe for you.</p></div>
+    <div class="live-head"><div><h1><span class="live-dot" aria-hidden="true"></span>Today's conditions in East Palestine</h1>
+      <p class="muted" style="max-width:70ch">These numbers update by themselves every 5 minutes. They are automatic readings, not official findings, and they don't say whether conditions are safe for you.</p></div>
       <div class="live-actions"><span class="muted live-meta" id="liveMeta"></span><button class="btn btn-ghost" id="liveNow">Update now</button></div></div>
     <div id="liveBody" class="live-wrap"></div>`,
     {title:"Live conditions snapshot", body:"<p>See the kiosk screen for current readings.</p>"});
@@ -1723,75 +1899,78 @@ const LIVE_CHARTS = [];
 function drawLive(){
   const body = $("#liveBody"); if(!body) return;
   body.classList.remove("refreshing");
-  const meta = $("#liveMeta"); if(meta) meta.innerHTML = LIVE.lastCheck?`Checked ${fmtTime(LIVE.lastCheck)} · <span id="liveNext"></span>`:"Loading…";
-  if(!LIVE.lastCheck){ body.innerHTML = `<p class="muted">Loading live readings…</p>`; return; }
+  const meta = $("#liveMeta"); if(meta) meta.innerHTML = LIVE.lastCheck?`Updated ${fmtTime(LIVE.lastCheck)} · <span id="liveNext"></span>`:"Loading…";
+  if(!LIVE.lastCheck){ body.innerHTML = `<div class="ltiles">${[1,2,3,4].map(()=>tile("Loading","—","","","",true)).join("")}</div>`; return; }
   if(liveAllFailed()){ body.innerHTML = liveUnavailableHTML(); return; }
+  const animate = LIVE.pendingAnim; LIVE.pendingAnim = false;
   const a=LIVE.air, w=LIVE.wx, wt=LIVE.water;
   LIVE_CHARTS.length = 0;
   const chartBox = (id, title, sub) => `<figure class="lchart"><figcaption><b>${title}</b><span class="muted">${sub}</span></figcaption><div class="chart-host" id="${id}"></div><details class="nums"><summary>Show the numbers</summary><div class="table-wrap" id="${id}-t"></div></details></figure>`;
-  let html = "";
+  let html = `<p class="plain-live"><b>Right now:</b> ${livePlainSummary()}</p>`;
   // AIR
   html += `<section class="lsec"><h2>Air quality</h2>`;
   if(a){
     const c=a.current;
-    html += `<div class="ltiles">
-      ${tile("Air Quality Index (US)", c.us_aqi, `For ${fmtDayTime(a.time)}`, aqiChip(c.us_aqi))}
-      ${tile("PM2.5 (fine particles)", fmtNum(c.pm2_5)+" <small>µg/m³</small>", "Particles small enough to reach the lungs")}
-      ${tile("Ozone", fmtNum(c.ozone)+" <small>µg/m³</small>", "Ground-level ozone")}
-      ${tile("Nitrogen dioxide", fmtNum(c.nitrogen_dioxide)+" <small>µg/m³</small>", "Mostly from vehicles and burning fuel")}
+    html += `<div class="card aqi-card"><div class="aqi-top"><div><span class="k">Air Quality Index</span><span class="v">${countHTML(c.us_aqi)}</span>${aqiChip(c.us_aqi)}</div><button class="info" data-term="aqi">What is the Air Quality Index?</button></div>${aqiScaleHTML(c.us_aqi)}</div>
+    <div class="ltiles stagger">
+      ${tile("Fine dust (PM2.5)", countHTML(c.pm2_5,1)+" <small>µg/m³</small>", trendHTML(trend(a.series.pm2_5,6),6)||"Tiny bits of dust and smoke", "", "pm25")}
+      ${tile("Ozone", countHTML(c.ozone)+" <small>µg/m³</small>", trendHTML(trend(a.series.ozone,6),6)||"A gas that forms in sunlight", "", "ozone")}
+      ${tile("Nitrogen dioxide", countHTML(c.nitrogen_dioxide,1)+" <small>µg/m³</small>", trendHTML(trend(a.series.nitrogen_dioxide,6),6)||"Mostly from vehicles and furnaces", "", "no2")}
     </div>
     <div class="lgrid">
-      ${chartBox("ch-aqi","Air Quality Index","Last 48 hours · lines mark the Good / Moderate boundaries")}
-      ${chartBox("ch-pm25","PM2.5","µg/m³ · last 48 hours")}
-      ${chartBox("ch-o3","Ozone","µg/m³ · last 48 hours")}
-      ${chartBox("ch-no2","Nitrogen dioxide","µg/m³ · last 48 hours")}
+      ${chartBox("ch-aqi","Air Quality Index, last 2 days","The dashed lines show where EPA's “Good” range (up to 50) and “Moderate” range (up to 100) end. Lower is cleaner.")}
+      ${chartBox("ch-pm25","Fine dust (PM2.5), last 2 days","Micrograms per cubic meter of air (µg/m³). Lower is cleaner.")}
+      ${chartBox("ch-o3","Ozone, last 2 days","Micrograms per cubic meter (µg/m³). It usually rises on sunny afternoons.")}
+      ${chartBox("ch-no2","Nitrogen dioxide, last 2 days","Micrograms per cubic meter (µg/m³).")}
     </div>
-    <p class="source">Source: <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener">Open-Meteo Air Quality API</a>, using Copernicus Atmosphere Monitoring Service (CAMS) forecasts. These are <b>computer-model estimates</b> for an area about 25 miles across, not readings from a monitor in East Palestine. They do not measure vinyl chloride or other derailment chemicals. For official monitor readings, see <a href="https://www.airnow.gov/" target="_blank" rel="noopener">AirNow</a>.</p>`;
-    LIVE_CHARTS.push(["ch-aqi", a.series.us_aqi, {unit:"AQI", fmt:v=>Math.round(v), zero:true, thresholds:[{v:50,label:"Good ≤ 50"},{v:100,label:"Moderate ≤ 100"}]}]);
+    <p class="source">Where this comes from: <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" rel="noopener">Open-Meteo Air Quality API</a>, using Copernicus Atmosphere Monitoring Service (CAMS) forecasts. These are <b>computer-model estimates</b> for an area about 25 miles across, not readings from a monitor in East Palestine. They do not measure vinyl chloride or other derailment chemicals. For official monitor readings, see <a href="https://www.airnow.gov/" target="_blank" rel="noopener">AirNow</a>.</p>`;
+    LIVE_CHARTS.push(["ch-aqi", a.series.us_aqi, {unit:"AQI", fmt:v=>Math.round(v), zero:true, thresholds:[{v:50,label:"Good ends at 50"},{v:100,label:"Moderate ends at 100"}]}]);
     LIVE_CHARTS.push(["ch-pm25", a.series.pm2_5, {unit:"µg/m³", zero:true}]);
     LIVE_CHARTS.push(["ch-o3", a.series.ozone, {unit:"µg/m³", zero:true}]);
     LIVE_CHARTS.push(["ch-no2", a.series.nitrogen_dioxide, {unit:"µg/m³", zero:true}]);
-  } else html += `<div class="absent"><p style="margin:0">Air readings aren't available right now (${esc(LIVE.err.air||"no data")}). The kiosk will try again automatically.</p></div>`;
+  } else html += `<div class="absent"><p style="margin:0">Air readings aren't available right now. The kiosk will try again by itself.</p></div>`;
   html += `</section>`;
   // WEATHER
   html += `<section class="lsec"><h2>Weather</h2>`;
   if(w){
     const c=w.current;
-    html += `<div class="ltiles">
-      ${tile("Temperature", Math.round(c.temperature_2m)+"°F", `For ${fmtDayTime(w.time)}`)}
-      ${tile("Wind", Math.round(c.wind_speed_10m)+" <small>mph</small>", `From the ${compass(c.wind_direction_10m)} · gusts ${Math.round(c.wind_gusts_10m)} mph`, `<span class="wind-arrow" style="transform:rotate(${(c.wind_direction_10m+180)%360}deg)" aria-hidden="true">↑</span>`)}
-      ${tile("Humidity", Math.round(c.relative_humidity_2m)+"%", "Relative humidity")}
-      ${tile("Precipitation", fmtNum(c.precipitation)+" <small>in</small>", "In the last hour")}
+    html += `<div class="ltiles stagger">
+      ${tile("Temperature", countHTML(Math.round(c.temperature_2m))+"°F", trendHTML(trend(w.series.temperature_2m,3),3)||`For ${fmtDayTime(w.time)}`)}
+      ${tile("Wind", countHTML(Math.round(c.wind_speed_10m))+" <small>mph</small>", `${cap(windWord(c.wind_speed_10m))} from the ${compassWord(c.wind_direction_10m)} · gusts up to ${Math.round(c.wind_gusts_10m)} mph`, `<span class="wind-arrow" style="transform:rotate(${(c.wind_direction_10m+180)%360}deg)" aria-hidden="true">↑</span>`)}
+      ${tile("Humidity", countHTML(Math.round(c.relative_humidity_2m))+"%", "How much moisture is in the air")}
+      ${tile("Rain or snow", c.precipitation>0?fmtNum(c.precipitation)+" <small>in</small>":"None", c.precipitation>0?"In the last hour":"None in the last hour")}
     </div>
     <div class="lgrid">
-      ${chartBox("ch-temp","Temperature","°F · last 48 hours")}
-      ${chartBox("ch-wind","Wind speed","mph · last 48 hours")}
+      ${chartBox("ch-temp","Temperature, last 2 days","Degrees Fahrenheit (°F)")}
+      ${chartBox("ch-wind","Wind speed, last 2 days","Miles per hour (mph)")}
     </div>
-    <p class="source">Source: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> weather model data for East Palestine. Wind direction shows where air is coming from.</p>`;
+    <p class="source">Where this comes from: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> weather model data for East Palestine. The arrow shows which way the wind is blowing.</p>`;
     LIVE_CHARTS.push(["ch-temp", w.series.temperature_2m, {unit:"°F", fmt:v=>Math.round(v)}]);
     LIVE_CHARTS.push(["ch-wind", w.series.wind_speed_10m, {unit:"mph", zero:true, fmt:v=>Math.round(v)}]);
-  } else html += `<div class="absent"><p style="margin:0">Weather isn't available right now (${esc(LIVE.err.wx||"no data")}).</p></div>`;
+  } else html += `<div class="absent"><p style="margin:0">Weather isn't available right now. The kiosk will try again by itself.</p></div>`;
   html += `</section>`;
   // WATER
-  html += `<section class="lsec"><h2>Stream conditions</h2>`;
+  html += `<section class="lsec"><h2>Little Beaver Creek</h2>`;
   if(wt){
     const s = wt.series;
+    const plain = {"00060":["How much water is flowing past the gauge each second","cfs"],"00065":["How high the water is at the gauge","gage"],"00010":["Water temperature",""]};
     const tiles = Object.keys(USGS_PARAMS).filter(k=>s[k]).map(k=>{
       const p=USGS_PARAMS[k], l=last(s[k]);
-      const val = k==="00010" ? `${fmtNum(l.v)}°C <small>(${Math.round(l.v*9/5+32)}°F)</small>` : `${fmtNum(l.v)} <small>${p.unit}</small>`;
-      return tile(p.name, val, `Reading at ${fmtDayTime(l.t)}`);
+      const val = k==="00010" ? `${countHTML(l.v,1)}°C <small>(${Math.round(l.v*9/5+32)}°F)</small>` : k==="00060" ? `${countHTML(Math.round(l.v))} <small>${p.unit}</small>` : `${countHTML(l.v,2)} <small>${p.unit}</small>`;
+      return tile(p.name, val, trendHTML(trend(s[k],6),6)||plain[k][0], "", plain[k][1]);
     }).join("");
-    html += `<div class="ltiles">${tiles}</div><div class="lgrid">`;
+    html += `<div class="ltiles stagger">${tiles}</div><div class="lgrid">`;
     Object.keys(USGS_PARAMS).filter(k=>s[k]).forEach(k=>{
       const p=USGS_PARAMS[k];
-      html += chartBox("ch-"+k, p.name, `${p.unit} · last 48 hours · every 15 minutes`);
+      html += chartBox("ch-"+k, p.name+", last 2 days", k==="00060"?"Cubic feet per second (ft³/s). Goes up after rain.":k==="00065"?"Feet above a fixed point at the gauge":"Degrees Celsius");
       LIVE_CHARTS.push(["ch-"+k, s[k], {unit:p.unit}]);
     });
     html += `</div>`;
-  } else html += `<div class="absent"><p style="margin:0">The stream gauge isn't reporting right now (${esc(LIVE.err.water||"no data")}).</p></div>`;
-  html += `<p class="source">Source: <a href="https://waterdata.usgs.gov/monitoring-location/USGS-03109500/" target="_blank" rel="noopener">USGS gauge 03109500, Little Beaver Creek near East Liverpool, OH</a>, downstream of the creeks that drain East Palestine. It measures <b>flow and water level, not chemicals</b>. No live chemical water-quality monitor is published for East Palestine; chemical results come from periodic sampling. <button class="linkish" data-q="water sampling results">Search water sampling results</button></p></section>`;
+  } else html += `<div class="absent"><p style="margin:0">The creek gauge isn't reporting right now. The kiosk will try again by itself.</p></div>`;
+  html += `<p class="source">Where this comes from: <a href="https://waterdata.usgs.gov/monitoring-location/USGS-03109500/" target="_blank" rel="noopener">USGS gauge 03109500, Little Beaver Creek near East Liverpool, OH</a>, downstream of the creeks that drain East Palestine. It measures <b>how much water is flowing and how high it is, not chemicals</b>. No live chemical water-quality monitor is published for East Palestine; chemical results come from periodic sampling. <button class="linkish" data-q="water sampling results">Search water sampling results</button></p></section>`;
   body.innerHTML = html;
-  LIVE_CHARTS.forEach(([id, pts, o])=>{ const h=document.getElementById(id); if(h){ lineChart(h, pts, o); numbersTable(document.getElementById(id+"-t"), pts, o); } });
+  LIVE_CHARTS.forEach(([id, pts, o])=>{ const h=document.getElementById(id); if(h){ lineChart(h, pts, Object.assign({animate}, o)); numbersTable(document.getElementById(id+"-t"), pts, o); } });
+  if(animate){ animateNumbers(body); body.querySelectorAll(".stagger").forEach(g=>[...g.children].forEach((el,i)=>el.style.setProperty("--i",i))); }
 }
 
 function niceTicks(lo, hi, n){
@@ -1806,7 +1985,7 @@ function lineChart(host, pts, o={}){
   host.innerHTML = "";
   if(!pts || pts.length<2){ host.innerHTML = `<p class="muted" style="margin:1rem 0">Not enough readings yet.</p>`; return; }
   const fmt = o.fmt || (v=>fmtNum(Math.round(v*10)/10));
-  const W = Math.max(280, host.clientWidth||520), H = 190, m = {l:46, r:18, t:14, b:28};
+  const W = Math.max(280, host.clientWidth||520), H = 220, m = {l:54, r:20, t:16, b:34};
   const x0 = +pts[0].t, x1 = +pts[pts.length-1].t;
   const vals = pts.map(p=>p.v); let lo = Math.min(...vals), hi = Math.max(...vals);
   (o.thresholds||[]).forEach(th=>{ if(th.v <= hi*1.6 + 5) hi = Math.max(hi, th.v); });
@@ -1818,11 +1997,11 @@ function lineChart(host, pts, o={}){
   const line = pts.map((p,i)=>`${i?"L":"M"}${sx(+p.t).toFixed(1)},${sy(p.v).toFixed(1)}`).join("");
   const area = `${line}L${sx(x1).toFixed(1)},${sy(lo).toFixed(1)}L${sx(x0).toFixed(1)},${sy(lo).toFixed(1)}Z`;
   let g = "";
-  ticks.forEach(v=>{ g += `<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}"/><text class="ax" x="${m.l-8}" y="${sy(v)+4}" text-anchor="end">${fmt(v)}</text>`; });
+  ticks.forEach(v=>{ g += `<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${sy(v)}" y2="${sy(v)}"/><text class="ax" x="${m.l-10}" y="${sy(v)+5}" text-anchor="end">${fmt(v)}</text>`; });
   // midnight ticks (New York time)
   pts.forEach((p,i)=>{
     const parts = NYH.formatToParts(p.t); const h=+parts.find(x=>x.type==="hour").value, mi=+parts.find(x=>x.type==="minute").value;
-    if(h===0 && mi===0 && i>0){ const x=sx(+p.t); g += `<line class="grid day" x1="${x}" x2="${x}" y1="${m.t}" y2="${H-m.b}"/><text class="ax" x="${x}" y="${H-8}" text-anchor="middle">${p.t.toLocaleDateString("en-US",{weekday:"short", timeZone:NY})}</text>`; }
+    if(h===0 && mi===0 && i>0){ const x=sx(+p.t); g += `<line class="grid day" x1="${x}" x2="${x}" y1="${m.t}" y2="${H-m.b}"/><text class="ax" x="${x}" y="${H-8}" text-anchor="middle">${p.t.toLocaleDateString("en-US",{weekday:"long", timeZone:NY})}</text>`; }
   });
   (o.thresholds||[]).forEach(th=>{ if(th.v>=lo && th.v<=hi){ const y=sy(th.v); g += `<line class="thr" x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}"/><text class="ax thr-l" x="${W-m.r-4}" y="${y-5}" text-anchor="end">${esc(th.label)}</text>`; } });
   const lp = pts[pts.length-1];
@@ -1835,6 +2014,12 @@ function lineChart(host, pts, o={}){
     <div class="tip" hidden></div>`;
   host.innerHTML = svg;
   const s = host.querySelector("svg"), xh = s.querySelector(".xh"), dot = s.querySelector(".xh-dot"), tip = host.querySelector(".tip");
+  if(o.animate && !REDUCED_MOTION){
+    const ln = s.querySelector(".ln"), L = ln.getTotalLength();
+    ln.style.strokeDasharray = L; ln.style.strokeDashoffset = L; ln.getBoundingClientRect();
+    ln.style.transition = "stroke-dashoffset 1.2s cubic-bezier(.3,.7,.2,1)"; ln.style.strokeDashoffset = 0;
+    s.querySelectorAll(".area,.endpt,.end-l").forEach(el=>{ el.style.opacity=0; el.style.transition="opacity .5s ease 1s"; requestAnimationFrame(()=>{ el.style.opacity=""; }); });
+  }
   let idx = pts.length-1;
   const show = i=>{
     idx = Math.max(0, Math.min(pts.length-1, i)); const p = pts[idx]; const x = sx(+p.t), y = sy(p.v);
@@ -1870,6 +2055,208 @@ let liveResizeT;
 window.addEventListener("resize", ()=>{ clearTimeout(liveResizeT); liveResizeT = setTimeout(()=>{ if(state.view==="live") LIVE_CHARTS.forEach(([id,pts,o])=>{ const h=document.getElementById(id); if(h) lineChart(h,pts,o); }); }, 200); });
 
 /* =========================================================================
+   7f. EASIER READING  (help tour, plain-language live summaries, idle warning,
+       talk-to-a-person page, motion helpers)
+   ========================================================================= */
+const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* Plain-language trend: compares the latest reading with the one `hours` earlier. */
+function trend(series, hours){
+  if(!series || series.length<2) return null;
+  const lp = series[series.length-1], target = +lp.t - hours*3600e3;
+  let prev = null; for(const p of series){ if(+p.t<=target) prev=p; else break; }
+  if(!prev || prev===lp) return null;
+  const d = lp.v - prev.v, base = Math.max(Math.abs(prev.v), 1e-6);
+  if(Math.abs(d/base) < 0.1) return {word:"steady", arrow:"→"};
+  return d>0 ? {word:"rising", arrow:"↗"} : {word:"falling", arrow:"↘"};
+}
+function trendHTML(t, hours){ return t ? `<span class="trend t-${t.word}"><span aria-hidden="true">${t.arrow}</span> ${t.word[0].toUpperCase()+t.word.slice(1)} over the last ${hours} hours</span>` : ""; }
+function windWord(mph){ return mph<1?"calm air":mph<8?"a light breeze":mph<19?"a moderate wind":mph<32?"a strong wind":"a very strong wind"; }
+function countHTML(v, dec=0){ return `<span class="cnt" data-to="${v}" data-dec="${dec}">${dec?Number(v).toFixed(dec):Math.round(v)}</span>`; }
+
+/* AQI scale: six EPA categories drawn as equal steps, with a marker for the current value. */
+function aqiScaleHTML(v){
+  const bounds=[0,50,100,150,200,300,500];
+  const i = Math.max(0, AQI_CATS.findIndex(c=>v<=c.max));
+  const within = Math.min(1, Math.max(0, (v-bounds[i])/(bounds[i+1]-bounds[i])));
+  const pos = ((i+within)/6*100).toFixed(1);
+  return `<div class="aqi-scale" aria-label="Air Quality Index ${v}, in the ${esc(AQI_CATS[i].label)} range. The scale runs from 0 to 500; lower is cleaner air.">
+    <div class="aqi-track">${AQI_CATS.map(c=>`<span style="background:${c.sw}"></span>`).join("")}<i class="aqi-marker" data-pos="${pos}" style="left:${REDUCED_MOTION?pos:0}%"><b>${v}</b></i></div>
+    <div class="aqi-labels">${["Good","Moderate","Unhealthy for sensitive groups","Unhealthy","Very unhealthy","Hazardous"].map((l,k)=>`<span${k===i?' class="on"':""}>${l}</span>`).join("")}</div>
+    <p class="aqi-help">EPA's Air Quality Index runs from 0 to 500. <b>Lower numbers mean cleaner air.</b></p>
+  </div>`;
+}
+
+/* One-paragraph summary of the live readings, in everyday words. */
+function livePlainSummary(){
+  const out = [];
+  const a = LIVE.air, w = LIVE.wx, wt = LIVE.water;
+  if(a){ const v=a.current.us_aqi; out.push(`The Air Quality Index is <b>${v}</b>, which is in EPA's <b>“${esc(aqiCat(v).label)}”</b> range.`); }
+  if(w){ const c=w.current; out.push(`It is <b>${Math.round(c.temperature_2m)}°F</b> with ${windWord(c.wind_speed_10m)} from the ${compassWord(c.wind_direction_10m)}.`); }
+  if(wt && wt.series["00060"]){ const t=trend(wt.series["00060"],6); out.push(`Little Beaver Creek's flow is <b>${t?t.word:"being measured"}</b>${t?" compared with 6 hours ago":""}.`); }
+  return out.join(" ");
+}
+const COMPASS_WORDS = {N:"north",NNE:"north-northeast",NE:"northeast",ENE:"east-northeast",E:"east",ESE:"east-southeast",SE:"southeast",SSE:"south-southeast",S:"south",SSW:"south-southwest",SW:"southwest",WSW:"west-southwest",W:"west",WNW:"west-northwest",NW:"northwest",NNW:"north-northwest"};
+function compassWord(deg){ return COMPASS_WORDS[compass(deg)]; }
+
+/* Run entrance animations after a view renders. */
+function animateIn(root){
+  if(!root) return;
+  root.classList.remove("enter"); void root.offsetWidth; root.classList.add("enter");
+  [...root.children].forEach((el,i)=>el.style.setProperty("--i", Math.min(i,8)));
+  root.querySelectorAll(".stagger").forEach(g=>[...g.children].forEach((el,i)=>el.style.setProperty("--i", Math.min(i,10))));
+}
+function animateNumbers(root){
+  if(REDUCED_MOTION || !root) return;
+  root.querySelectorAll(".cnt").forEach(el=>{
+    const to = parseFloat(el.dataset.to), dec = +el.dataset.dec||0; if(!isFinite(to)) return;
+    const t0 = performance.now(), dur = 800;
+    const step = now=>{ const k = Math.min(1,(now-t0)/dur), e = 1-Math.pow(1-k,3); el.textContent = (to*e).toFixed(dec); if(k<1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  root.querySelectorAll(".aqi-marker").forEach(m=>requestAnimationFrame(()=>requestAnimationFrame(()=>{ m.style.left = m.dataset.pos+"%"; })));
+}
+
+/* ---------- Help tour ---------- */
+const TOUR = [
+  {icon:"search", title:"Search", text:"Type a topic, or tap one of the example questions. You'll get links to the official websites that have the answer, like U.S. EPA and the county health district."},
+  {icon:"ask", title:"Ask a question", text:"Ask in your own words, the way you'd ask a person. The AI helper is a computer program that writes an answer in plain language. It can make mistakes, so it always shows where its information came from."},
+  {icon:"live", title:"Today's conditions", text:"See today's air quality, weather and creek level for East Palestine. These numbers update by themselves every few minutes."},
+  {icon:"person", title:"Talk to a person", text:"Tap the orange button at the bottom of any screen to print the page. Bring it to the reference desk, and library staff will go through it with you."},
+  {icon:"text", title:"Make it easier to read", text:"Use the A buttons at the top to make words bigger. High contrast makes colors stronger. Listen reads the page out loud."}
+];
+const TOUR_ICONS = {
+  search:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><circle cx="21" cy="21" r="12"/><path d="M30 30l10 10"/></svg>',
+  ask:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"><path d="M8 10h32v22H22l-9 7v-7H8z"/><path d="M17 19h14M17 25h9" stroke-linecap="round"/></svg>',
+  live:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 32l9-10 8 6 10-14 9 8"/><path d="M6 40h36"/></svg>',
+  person:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><circle cx="24" cy="16" r="7"/><path d="M10 40c2-8 8-12 14-12s12 4 14 12"/></svg>',
+  text:'<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 38l9-26 9 26M9 30h12"/><path d="M28 38l6-16 6 16M30 33h8"/></svg>'
+};
+function showTour(i=0, dir=1){
+  const s = TOUR[i];
+  const open = $(".modal .tour") ? (h=>{ $(".modal").innerHTML = h; }) : openModal;
+  open(`
+    <div class="tour" style="--dir:${dir}">
+      <p class="tour-step">Step ${i+1} of ${TOUR.length}</p>
+      <div class="tour-icon" aria-hidden="true">${TOUR_ICONS[s.icon]}</div>
+      <h2 id="mtitle">${esc(s.title)}</h2>
+      <p class="tour-text">${esc(s.text)}</p>
+      <div class="tour-dots" aria-hidden="true">${TOUR.map((_,k)=>`<i class="${k===i?"on":""}"></i>`).join("")}</div>
+      <div class="btn-row tour-nav">
+        ${i>0?`<button class="btn btn-ghost" id="tourBack">← Back</button>`:`<button class="btn btn-ghost" data-close="1">Skip</button>`}
+        ${i<TOUR.length-1?`<button class="btn btn-primary" id="tourNext">Next →</button>`:`<button class="btn btn-primary" data-close="1">Start using the kiosk</button>`}
+      </div>
+    </div>`);
+  const n=$("#tourNext"), b=$("#tourBack");
+  if(n){ n.onclick = ()=>showTour(i+1, 1); n.focus({preventScroll:true}); }
+  if(b) b.onclick = ()=>showTour(i-1, -1);
+}
+
+/* ---------- Idle warning: a gentle prompt before the screen clears ---------- */
+const IDLE_WARN_SECONDS = 30;
+function showIdleWarning(){
+  state.idleWarning = true;
+  let left = IDLE_WARN_SECONDS;
+  openModal(`<div class="idle-box"><h2 id="mtitle">Are you still there?</h2>
+    <p style="font-size:1.1rem">To keep your search private, this screen will clear in <b id="idleCount">${left}</b> seconds.</p>
+    <div class="idle-ring" aria-hidden="true"><svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="19"/></svg></div>
+    <button class="btn btn-primary" id="stillHere" style="width:100%;min-height:80px;font-size:1.2rem">Yes, I'm still here</button></div>`, {locked:true});
+  clearInterval(state.idleCountdown);
+  state.idleCountdown = setInterval(()=>{
+    left--; const el=$("#idleCount"); if(el) el.textContent = left;
+    if(left<=0){ clearInterval(state.idleCountdown); state.idleWarning=false; endSession(); }
+  }, 1000);
+}
+
+/* ---------- Talk to a person ---------- */
+function renderPerson(){
+  state.view = "person";
+  setMain(`${backBtn()}
+    <h1>Talk to a person</h1>
+    <p class="muted" style="font-size:1.1rem;max-width:60ch">You don't have to figure this out alone. Library staff can help you find information and the right people to call.</p>
+    <div class="person-hero"><div class="tour-icon" aria-hidden="true">${TOUR_ICONS.person}</div>
+      <div><h2>Library reference desk</h2><p>Ask any staff member. Tap the button to print what's on your screen and bring it with you.</p>
+      <button class="btn btn-cta" data-act="print">Print a page to bring to the desk</button></div></div>
+    <h2 style="margin-top:26px">Phone numbers for local help</h2>
+    <div class="contacts stagger person-grid">${["cchd","wells","clinic","epa","crisis","poison"].map(k=>contactHTML(CONTACTS[k])).join("")}</div>
+    <p class="muted" style="font-size:.9rem">${CONTACT_NOTE} In an emergency, call <b>911</b>.</p>`,
+    {title:"Phone numbers for local help", body:`<ul>${["cchd","wells","clinic","epa","crisis","poison"].map(k=>{const c=CONTACTS[k];return `<li><b>${esc(c.n)}</b> — ${esc(c.phone)}<br>${esc(c.d)}</li>`;}).join("")}</ul><p>Emergency: 911</p>`});
+}
+
+/* =========================================================================
+   7g. LAYOUT B ("guided"): one big choice at a time.
+   The same page becomes Layout B when <html data-layout="guided">.
+   ========================================================================= */
+const LAYOUT = document.documentElement.dataset.layout==="guided" ? "guided" : "classic";
+const LAYOUT_LINKS = {
+  classic:{rel:"index.html", art:"https://claude.ai/artifact/UGrwYm3pLy9fuiodRLqq9b"},
+  guided:{rel:"draft-b/index.html", art:"https://claude.ai/artifact/3LixV18DRA36SPGZKYu4qi"}
+};
+function otherLayoutHref(){
+  const other = LAYOUT==="guided" ? "classic" : "guided";
+  let embedded=false; try{ embedded = window.self!==window.top; }catch(e){ embedded=true; }
+  if(embedded) return LAYOUT_LINKS[other].art.startsWith("http") ? LAYOUT_LINKS[other].art : "";
+  return LAYOUT==="guided" ? "../index.html" : "draft-b/index.html";
+}
+function goBack(){
+  const v = state.view;
+  if(v==="doc") return renderDocs(sunset());
+  if(v==="answer" && state.backTo==="searchpage") return renderSearchPage();
+  renderHome();
+}
+const G_ICONS = {
+  search:TOUR_ICONS.search, ask:TOUR_ICONS.ask, live:TOUR_ICONS.live, person:TOUR_ICONS.person
+};
+function renderHomeGuided(){
+  state.view = "home";
+  const paused = !qaAvailable();
+  setMain(`
+    <div class="g-hello"><h1>Hello. What would you like to do?</h1>
+      <p class="muted">Tap one of the big buttons. You can come back here any time with the <b>Home</b> button at the top.</p></div>
+    <div class="g-choices stagger">
+      <button class="g-choice" data-act="searchpage" ${paused?"disabled":""}><span class="g-ic">${G_ICONS.search}</span><b>Look something up</b><span>Get links to official websites about water, air and soil.</span></button>
+      <button class="g-choice c-ask" data-act="ai" ${paused?"disabled":""}><span class="g-ic">${G_ICONS.ask}</span><b>Ask a question in my own words</b><span>A computer program writes an answer in plain language.</span></button>
+      <button class="g-choice c-live" data-act="live"><span class="g-ic">${G_ICONS.live}</span><b>Check today's air, weather and creek</b><span>Readings that update by themselves.</span></button>
+      <button class="g-choice c-person" data-act="person"><span class="g-ic">${G_ICONS.person}</span><b>Talk to a person</b><span>Library staff and phone numbers for local help.</span></button>
+    </div>
+    ${paused?`<div class="banner"><div><strong>Searching and questions are paused right now.</strong>Please ask at the reference desk.</div></div>`:""}
+    <section class="card live-strip" id="liveStrip"></section>
+    <div class="g-more"><span class="muted">More:</span>
+      <button class="btn btn-ghost" data-act="glossary">Word list</button>
+      <button class="btn btn-ghost" data-act="limits">Drinking-water limits</button>
+      <button class="btn btn-ghost" data-act="docs">Library binder</button>
+      <button class="btn btn-ghost" data-act="help">How to use this kiosk</button>
+    </div>`, homePrintable());
+  renderLiveStrip(); renderAIStatus();
+  if(AI.status==="unknown") aiCheck();
+  liveStart();
+}
+function renderSearchPage(){
+  state.view = "searchpage";
+  if(!qaAvailable()) return renderPaused();
+  const chips = ["How do I get my well tested?","Village tap water test results","Soil test results","Where did the smoke go?","Who do I call about the cleanup?","What does “not detected” mean?","Creek cleanup plans","Health clinic"];
+  setMain(`${backBtn()}
+    <h1>Look something up</h1>
+    <p class="muted" style="font-size:1.1rem;max-width:60ch">Type a topic or question, then tap <b>Search</b>. Or tap one of the examples below.</p>
+    <form class="search g-search" id="searchForm" role="search" autocomplete="off">
+      <label for="q" style="position:absolute;left:-9999px">Search official information</label>
+      <input id="q" name="q" placeholder="Type a topic, like well testing" maxlength="200">
+      <button class="btn btn-primary" type="submit">Search</button>
+    </form>
+    <h2 style="margin-top:22px">Examples</h2>
+    <div class="chips stagger">${chips.map(c=>`<button class="chip" data-q="${esc(c)}">${esc(c)}</button>`).join("")}</div>
+    <h2 style="margin-top:26px">Or pick a topic</h2>
+    <div class="tiles stagger">
+      <button class="tile" data-q="Village tap water test results"><span class="ic">${ICONS.tap}</span><b>Village tap water</b><span>Public water system</span></button>
+      <button class="tile" data-q="Private well testing and results"><span class="ic">${ICONS.well}</span><b>Private wells</b><span>Testing and results</span></button>
+      <button class="tile" data-q="Stream and creek sampling"><span class="ic">${ICONS.stream}</span><b>Creeks and streams</b><span>Sampling and cleanup</span></button>
+      <button class="tile" data-q="Soil and sediment results"><span class="ic">${ICONS.docs}</span><b>Soil</b><span>Yards, farms and parks</span></button>
+      <button class="tile" data-q="Air monitoring results"><span class="ic">${ICONS.live||ICONS.limit}</span><b>Air</b><span>Monitoring results</span></button>
+      <button class="tile" data-q="Health clinic and support"><span class="ic">${ICONS.book}</span><b>Health services</b><span>Clinics and support</span></button>
+    </div>`, homePrintable());
+}
+
+/* =========================================================================
    8. BANNERS (staleness, sunset, staffing)
    ========================================================================= */
 function renderBanners(){
@@ -1903,13 +2290,20 @@ const DISCLAIMER = [
 
 function showAcknowledgement(){
   openModal(`
-    <h2 id="mtitle">Before you start</h2>
-    <p style="font-size:1.1rem">This kiosk helps you <b>find and read</b> official water test documents for the East Palestine area.</p>
-    <ul style="font-size:1.02rem">${DISCLAIMER.map(d=>`<li>${d}</li>`).join("")}</ul>
-    <p>For questions about health, safety, or legal matters, it will point you to a person who can help.</p>
-    <div class="btn-row"><button class="btn btn-primary" id="ackBtn" style="flex:1">I understand — start</button></div>
+    <h2 id="mtitle">Welcome</h2>
+    <p style="font-size:1.2rem;margin-bottom:0">This kiosk helps you <b>find and understand</b> official information about water, air and soil in East Palestine.</p>
+    <div class="welcome-points">
+      <div><span><b>It shows where everything comes from.</b> Every answer links to the official source.</span></div>
+      <div><span><b>It isn't a doctor or a lawyer.</b> For health, safety or legal questions, it shows you who can help.</span></div>
+      <div><span><b>Nothing you type is saved.</b> The screen clears when you're done.</span></div>
+    </div>
+    <p class="fine" style="margin-bottom:4px"><b>Full notice:</b></p>
+    <ul class="fine">${DISCLAIMER.map(d=>`<li>${d}</li>`).join("")}</ul>
+    <div class="btn-row"><button class="btn btn-primary" id="ackBtn" style="flex:2;min-height:76px;font-size:1.15rem">I understand — start</button><button class="btn btn-ghost" id="ackTour" style="flex:1;min-height:76px">Show me how it works</button></div>
   `, {locked:true});
-  $("#ackBtn").onclick = ()=>{ state.acknowledged=true; state.counts.sessions++; closeModal(); renderHome(); resetIdle(); };
+  const start = ()=>{ state.acknowledged=true; state.counts.sessions++; closeModal(); renderHome(); resetIdle(); };
+  $("#ackBtn").onclick = start;
+  $("#ackTour").onclick = ()=>{ start(); showTour(0); };
 }
 
 function showLimitations(){
@@ -2020,24 +2414,29 @@ function doPrint(){
 /* =========================================================================
    11. READ ALOUD (on-device speech; nothing is sent anywhere)
    ========================================================================= */
-function stopSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); const b=$("#readBtn"); if(b){b.setAttribute("aria-pressed","false"); b.querySelector("span").textContent="Read aloud";} }
+function stopSpeech(){ if("speechSynthesis" in window) speechSynthesis.cancel(); const b=$("#readBtn"); if(b){b.setAttribute("aria-pressed","false"); b.querySelector("span").textContent="Listen";} }
 function toggleSpeech(){
   if(!("speechSynthesis" in window)){ alertInline("Read aloud isn't available on this device."); return; }
   const b=$("#readBtn");
   if(speechSynthesis.speaking){ stopSpeech(); return; }
   const text = $("#main").innerText.replace(/\s+/g," ").replace(/µg\/L/g,"micrograms per liter").replace(/\bMCL\b/g,"M C L");
   const u = new SpeechSynthesisUtterance(text); u.rate=0.9; u.onend=stopSpeech;
-  speechSynthesis.speak(u); b.setAttribute("aria-pressed","true"); b.querySelector("span").textContent="Stop reading";
+  speechSynthesis.speak(u); b.setAttribute("aria-pressed","true"); b.querySelector("span").textContent="Stop listening";
 }
 function alertInline(msg){ $("#banners").insertAdjacentHTML("beforeend",`<div class="banner info"><div>${esc(msg)}</div></div>`); }
 
 /* =========================================================================
    12. SESSION / IDLE (privacy: everything clears)
    ========================================================================= */
-const IDLE_MS = 3*60*1000;
-function resetIdle(){ clearTimeout(state.idleTimer); if(state.acknowledged) state.idleTimer = setTimeout(endSession, IDLE_MS); }
+const IDLE_MS = 5*60*1000;   // screen clears after 5 minutes without a touch (30-second warning first)
+function resetIdle(){
+  // Any touch or key press counts as "still here" and closes the warning.
+  if(state.idleWarning){ clearInterval(state.idleCountdown); state.idleWarning=false; closeModal(); }
+  clearTimeout(state.idleTimer);
+  if(state.acknowledged) state.idleTimer = setTimeout(showIdleWarning, IDLE_MS - IDLE_WARN_SECONDS*1000);
+}
 function endSession(){
-  clearTimeout(state.idleTimer); stopSpeech(); closeModal();
+  clearTimeout(state.idleTimer); clearInterval(state.idleCountdown); state.idleWarning=false; stopSpeech(); closeModal();
   state.acknowledged=false; state.printable=null;
   if(AI.ctrl) AI.ctrl.abort(); AI.log=[]; AI.history=[]; AI.busy=false;
   $("#print-area").innerHTML="";
@@ -2075,6 +2474,11 @@ document.addEventListener("click", e=>{
   else if(act==="limits") renderLimits();
   else if(act==="print") doPrint();
   else if(act==="ai") renderAI();
+  else if(act==="person") renderPerson();
+  else if(act==="searchpage") renderSearchPage();
+  else if(act==="back") goBack();
+  else if(act==="help") showTour(0);
+  else if(act==="top") window.scrollTo({top:0, behavior: REDUCED_MOTION?"auto":"smooth"});
   else if(act==="webllm-load") webllmLoad();
   else if(act==="live") renderLive();
 });
@@ -2098,13 +2502,18 @@ $("#contrastBtn").onclick = function(){
   this.setAttribute("aria-pressed", on);
   document.documentElement.dataset.contrast = on?"high":"";
 };
-document.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{
-  document.documentElement.style.setProperty("--fs", b.dataset.size+"px");
-  document.querySelectorAll("[data-size]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+document.querySelectorAll("[data-mult]").forEach(b=>b.onclick=()=>{
+  const base = LAYOUT==="guided" ? 24 : 22;
+  document.documentElement.style.setProperty("--fs", Math.round(base*parseFloat(b.dataset.mult))+"px");
+  document.querySelectorAll("[data-mult]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  if(state.view==="live") LIVE_CHARTS.forEach(([id,pts,o])=>{ const h=document.getElementById(id); if(h) lineChart(h,pts,o); });
 });
+$("#helpBtn").onclick = ()=>showTour(0);
+(function(){ const href = otherLayoutHref(), el = $("#layoutSwitch");
+  if(el && href) el.innerHTML = ` · <a class="layout-link" href="${href}" ${href.startsWith("http")?'target="_blank" rel="noopener"':""}>${LAYOUT==="guided"?"Switch to Layout A":"Try draft Layout B"}</a>`; })();
 
 /* expose for the test harness / evaluation scripts */
-window.KIOSK = {classify:(q)=>{const t=normalize(q); const c=tier3Gate(t); if(c) return {tier:3,cat:c.id}; if(TIER2.test(t)) return {tier:2}; const r=retrieve(t); return {tier:(r.score>=RELEVANCE_THRESHOLD||r.wantsLimits||findGlossary(t).length||r.absent.length)?1:0, r};}, ask, aiAsk, searchResources, AI, LIVE, state};
+window.KIOSK = {classify:(q)=>{const t=normalize(q); const c=tier3Gate(t); if(c) return {tier:3,cat:c.id}; if(TIER2.test(t)) return {tier:2}; const r=retrieve(t); return {tier:(r.score>=RELEVANCE_THRESHOLD||r.wantsLimits||findGlossary(t).length||r.absent.length)?1:0, r};}, ask, aiAsk, searchResources, AI, LIVE, state, LAYOUT, showTour, renderPerson, showIdleWarning};
 
 showAcknowledgement();
 </script>

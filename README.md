@@ -8,17 +8,63 @@ It is part of **IEEE Tech4Good 2026, Project 26-T4G-227: GenAI-Powered Environme
 
 ![Home screen](docs/screenshots/home.png)
 
+## Two layouts to compare
+
+| | **Layout A** (`index.html`) | **Draft Layout B** (`draft-b/index.html`) |
+|---|---|---|
+| Idea | Everything on one start screen: both search boxes, today's conditions and topic tiles | One big choice at a time: *Look something up*, *Ask a question*, *Check today's conditions*, *Talk to a person* |
+| Navigation | Tabs across the top | **Home** and **Back** buttons with a "You are here" label |
+| Look | Teal and amber, sans-serif | Lake blue and sunflower, serif headings, larger default text (24 px) |
+| Live web version | [gurmehar-chima.github.io/east-palestine-water-records-finder](https://gurmehar-chima.github.io/east-palestine-water-records-finder/) | […/draft-b/](https://gurmehar-chima.github.io/east-palestine-water-records-finder/draft-b/) |
+
+Both layouts run the same code, so the safety rules, search, AI helper and live data behave identically. Layout B is `index.html` with `data-layout="guided"` on the `<html>` tag. A link in the grey strip at the top of each page switches to the other layout.
+
+| Layout B start screen | Layout B search |
+|---|---|
+| ![Layout B start screen](docs/screenshots/layout-b-home.png) | ![Layout B search](docs/screenshots/layout-b-search.png) |
+
+## Designed for first-time and older visitors
+
+We reviewed every screen as a 70-year-old first-time visitor would and changed what was confusing:
+
+| What was confusing | What changed |
+|---|---|
+| Two search boxes with no guidance | A "Not sure which to use?" line explains them: Search gives links, Ask a question writes an answer. "AI helper" is described as "a computer program that writes an answer." |
+| No instructions anywhere | A **How to use** button opens a five-step illustrated tour. The welcome screen offers "Show me how it works." |
+| Bare numbers like "AQI 38" or "310 ft³/s" | A one-sentence summary in everyday words ("The Air Quality Index is 38, which is in EPA's 'Good' range…"), an AQI color scale with a marker, trend words (rising, falling, steady), and a **What is this?** button on every reading |
+| Small chart labels and two-letter day names | Bigger axis text, full day names, thicker lines, and plain captions ("Lower is cleaner") |
+| The screen cleared after 3 minutes with no warning | 5 minutes, with an "Are you still there?" warning and a 30-second countdown. Any touch keeps the session. |
+| Unlabeled "A A A" buttons; "Read aloud"; "End session" | "Text size" label; **Listen**; **I'm done — clear screen** |
+| The only way to reach a person was the print button | A **Talk to a person** page with the reference desk and local phone numbers, reachable from every screen |
+| Links opened new tabs with no explanation | A note on every results page: "To come back here, close that tab." |
+| Long pages with Back only at the top | Back and **Back to top** buttons at the bottom of every page |
+| Cut-off example text in the search box | Shorter placeholder text |
+| Base text 20 px | Base text 22 px (24 px in Layout B), with two larger sizes |
+
+![Help tour](docs/screenshots/help-tour.png)
+
+### Animations
+
+Gentle motion helps people notice what changed. Every animation is switched off automatically when the device's "Reduce motion" setting is on.
+
+- Pages and cards rise into place one after another.
+- Live numbers count up, chart lines draw in, and the AQI marker slides to its spot on the scale.
+- A pulsing green dot shows that today's conditions are live.
+- Loading readings show a soft shimmer instead of blank boxes.
+- Chat answers and dialogs ease in, and the help tour slides between steps.
+- The idle warning shows a ring that empties as the 30 seconds count down.
+
 ## What it does
 
 The home screen has **two search bars**:
 
-| | **Search** | **AI helper** |
+| | **Search** | **Ask a question (AI helper)** |
 |---|---|---|
 | What you type | Any question or topic, in any wording | Any question, in your own words |
 | What you get | Links to the official pages that have the answer (U.S. EPA, Ohio EPA, Columbiana County Health District, ATSDR, NIEHS, USGS and others), plus matching library-binder records and word-list definitions | A plain-language explanation written by an AI model that runs on the device, with links to the sources it was given |
 | Uses AI? | No | Yes: Ollama on the kiosk, or a model that runs inside the browser |
 
-A third section, **Live conditions**, shows air quality, weather and stream flow for East Palestine and updates every 5 minutes.
+A third section, **Today's conditions**, shows air quality, weather and stream flow for East Palestine and updates every 5 minutes.
 
 | Search results | AI helper | Live conditions |
 |---|---|---|
@@ -95,9 +141,13 @@ USGS plans to retire its legacy WaterServices API in winter 2027. The page alrea
 
 **Staff controls:** tap **Staff** in the bottom-right corner. On the installed kiosk these would be physical controls, such as a key switch and an emergency button.
 
+## Editing
+
+Edit only `index.html`, then run `node tools/build.js` to regenerate `draft-b/index.html` (and the claude.ai preview files in `dist/`). Commit both `index.html` and `draft-b/index.html`.
+
 ## Testing
 
-`tests/smoke-test.js` runs 30 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS, Ollama and the in-browser AI so no network or GPU is needed. The test checks:
+`tests/smoke-test.js` runs 33 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS, Ollama and the in-browser AI so no network or GPU is needed. The test checks:
 
 - question routing for all three result types
 - that any wording returns at least one official link
@@ -106,6 +156,8 @@ USGS plans to retire its legacy WaterServices API in winter 2027. The page alrea
 - that AI answers containing a safety verdict are withheld
 - that the live charts draw
 - that the in-browser AI can be turned on and answers a question that was waiting
+- that the idle warning appears and a touch keeps the session, and that the help tour opens
+- that Layout B's big choices, search and Back button work
 
 ```bash
 npm install playwright
@@ -118,7 +170,9 @@ When adding red-team questions (the project calls for 75), add them to `ROUTING`
 ## Repository layout
 
 ```
-index.html               The complete kiosk page (HTML, CSS and JavaScript in one file)
+index.html               The complete kiosk page, Layout A (HTML, CSS and JavaScript in one file)
+draft-b/index.html       Layout B, generated from index.html by tools/build.js (don't edit by hand)
+tools/build.js           Builds draft-b/ and the claude.ai preview files in dist/ (not committed)
 link.md                  Link to the claude.ai preview of the page
 tests/smoke-test.js      Routing, search, AI-safety and live-chart tests
 tests/mocks.js           Simulated Open-Meteo, USGS, Ollama and WebLLM responses for the tests
@@ -138,6 +192,8 @@ Inside `index.html`, the script is organized in numbered sections:
 | 7c | Search results | — |
 | 7d | AI helper: `AI_RULES` (the model's instructions), the output filter, Ollama and in-browser (WebLLM) streaming | — |
 | 7e | Live conditions: data loaders, refresh timer and SVG charts | — |
+| 7f | Easier reading: plain-language summaries, trends, AQI scale, help tour, idle warning, Talk to a person | Tour text lives in `TOUR` |
+| 7g | Layout B: big-choice start screen, search screen and Back navigation | — |
 | 8–13 | Banners, modals, printing, read-aloud, session reset and events | — |
 
 ## Requirements covered

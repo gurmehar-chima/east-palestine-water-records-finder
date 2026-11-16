@@ -90,6 +90,29 @@ const FREE_FORM = ["how do I get my well tested", "where did the smoke go", "soi
   check(ans.status === "webllm" && ans.last.includes("highest amount") && ans.last.includes("epa.gov/ground-water"), "in-browser AI answers the waiting question");
   await p2.screenshot({ path: path.resolve(__dirname, "..", "docs/screenshots/ai-in-browser.png") });
 
+  // Easier reading: idle warning appears before the screen clears, and any touch dismisses it.
+  await page.evaluate(() => KIOSK.showIdleWarning());
+  const warned = await page.locator(".idle-box").count();
+  await page.mouse.click(5, 300);
+  const dismissed = await page.evaluate(() => !KIOSK.state.idleWarning && !document.querySelector(".idle-box"));
+  check(warned === 1 && dismissed, "idle warning shows and a touch keeps the session");
+  await page.evaluate(() => KIOSK.showTour(0));
+  check(await page.locator(".tour").count() === 1, "help tour opens");
+
+  // Layout B (guided) loads, shows the four big choices, and Back returns to the search screen.
+  const p3 = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+  p3.on("pageerror", (e) => errors.push("Layout B: " + e.message));
+  await install(p3);
+  await p3.goto("file://" + path.resolve(__dirname, "..", "draft-b", "index.html"));
+  await p3.click("#ackBtn");
+  const choices = await p3.locator(".g-choice").count();
+  await p3.click('.g-choice[data-act="searchpage"]');
+  await p3.click('[data-q="How do I get my well tested?"]');
+  const links = await p3.locator("#main .rlink").count();
+  await p3.click('.g-bar [data-act="back"]');
+  const back = await p3.evaluate(() => KIOSK.state.view);
+  check(choices === 4 && links > 0 && back === "searchpage", "Layout B: big choices, search, and Back work");
+
   check(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join("; ") : ""));
   await browser.close();
   console.log(failed ? `\n${failed} failure(s)` : "\nAll checks passed");
