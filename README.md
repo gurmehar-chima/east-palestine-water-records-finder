@@ -133,11 +133,21 @@ The page reads three public sources directly from the browser. No sign-up or key
 | Weather | [Open-Meteo Forecast API](https://open-meteo.com/) | Temperature, wind speed and direction, humidity, precipitation | — |
 | Stream | [USGS gauge 03109500](https://waterdata.usgs.gov/monitoring-location/USGS-03109500/), Little Beaver Creek near East Liverpool | Stream flow and water level every 15 minutes | Chemical water quality. No live chemical monitor is published for East Palestine. |
 
+**Green, yellow and red lights.** Air quality, fine dust and creek flow each show a colored light:
+
+| Reading | Green | Yellow | Red | Based on |
+|---|---|---|---|---|
+| Air Quality Index | 0–50 "Good" | 51–100 "Moderate" | 101+ | EPA AQI categories (the full six-color scale is shown) |
+| Fine dust (PM2.5), 24-hour average | 0–9.0 µg/m³ "Good" | 9.1–35.4 "Moderate" | 35.5+ "Unhealthy for sensitive groups" or worse | [EPA's 2024 PM2.5 AQI breakpoints](https://www.epa.gov/system/files/documents/2024-02/pm-naaqs-air-quality-index-fact-sheet.pdf) |
+| Little Beaver Creek flow | 25th–75th percentile "Normal for this date" | 10th–25th or 75th–90th "Below/Above normal" | Below 10th or above 90th "Much below/above normal" | [USGS daily percentiles](https://help.waterdata.usgs.gov/faq/surface-water/what-is-a-percentile) for today's date (USGS statistics service) |
+
+EPA defines the PM2.5 ranges for 24-hour averages, so the fine-dust light uses the average of the last 24 hourly estimates. Creek flow is not a health measure, and no flood stage is published for this gauge, so its light shows how unusual the flow is for the date. If the USGS statistics can't be loaded, the creek light turns gray instead of guessing.
+
 U.S. EPA's own East Palestine air monitoring page is marked "no longer updated," so it is listed as a search link rather than used as live data. For official monitor AQI, the page links to [AirNow](https://www.airnow.gov/).
 
 USGS plans to retire its legacy WaterServices API in winter 2027. The page already falls back to the newer [USGS Water Data API](https://api.waterdata.usgs.gov/docs/ogcapi/migration).
 
-**Kiosk network allow-list:** `air-quality-api.open-meteo.com`, `api.open-meteo.com`, `waterservices.usgs.gov`, `api.waterdata.usgs.gov`. The in-browser AI also needs `cdn.jsdelivr.net`, `huggingface.co` and `raw.githubusercontent.com` for its one-time download. Linked agency websites also need to be allowed if patrons should open them on the kiosk.
+**Kiosk network allow-list:** `air-quality-api.open-meteo.com`, `api.open-meteo.com`, `waterservices.usgs.gov` (live readings and daily statistics), `api.waterdata.usgs.gov`. The in-browser AI also needs `cdn.jsdelivr.net`, `huggingface.co` and `raw.githubusercontent.com` for its one-time download. Linked agency websites also need to be allowed if patrons should open them on the kiosk.
 
 **Staff controls:** tap **Staff** in the bottom-right corner. On the installed kiosk these would be physical controls, such as a key switch and an emergency button.
 
@@ -147,14 +157,14 @@ Edit only `index.html`, then run `node tools/build.js` to regenerate `draft-b/in
 
 ## Testing
 
-`tests/smoke-test.js` runs 33 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS, Ollama and the in-browser AI so no network or GPU is needed. The test checks:
+`tests/smoke-test.js` runs 35 checks offline. `tests/mocks.js` simulates Open-Meteo, USGS, Ollama and the in-browser AI so no network or GPU is needed. The test checks:
 
 - question routing for all three result types
 - that any wording returns at least one official link
 - that safety questions never reach the AI
 - that unofficial links are stripped from AI answers
 - that AI answers containing a safety verdict are withheld
-- that the live charts draw
+- that the live charts draw, and that the green/yellow/red lights switch at the right numbers
 - that the in-browser AI can be turned on and answers a question that was waiting
 - that the idle warning appears and a touch keeps the session, and that the help tour opens
 - that Layout B's big choices, search and Back button work

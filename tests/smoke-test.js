@@ -74,6 +74,17 @@ const FREE_FORM = ["how do I get my well tested", "where did the smoke go", "soi
   const charts = await page.locator(".chart-host svg").count();
   check(charts >= 6, `live conditions draw ${charts} charts`);
 
+  // Traffic lights: fine dust uses EPA's 24-hour PM2.5 ranges; creek flow uses USGS percentiles for the date.
+  const lights = await page.evaluate(() => {
+    const pm = (v) => KIOSK.pm25Light(Array.from({ length: 24 }, () => ({ v }))).level;
+    KIOSK.LIVE.flowStats = { p10: 60, p25: 110, p75: 380, p90: 650, years: "1915–2025" };
+    const fl = (v) => KIOSK.flowLight(v).level;
+    return [pm(9.0), pm(9.1), pm(35.4), pm(35.5), fl(50), fl(100), fl(300), fl(500), fl(700)].join("");
+  });
+  check(lights === "gyyrrygyr", `light thresholds are correct (${lights})`);
+  const shown = await page.locator("#liveBody .light-chip").count();
+  check(shown >= 2, `live page shows ${shown} green/yellow/red lights`);
+
   // In-browser AI (no Ollama): question waits, model downloads, then it answers.
   const p2 = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
   p2.on("pageerror", (e) => errors.push(e.message));

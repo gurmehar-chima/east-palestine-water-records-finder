@@ -19,11 +19,19 @@ const WEBGPU_MOCK = `
         for(const w of "An MCL is the highest amount of a chemical EPA allows in public drinking water. See National Primary Drinking Water Regulations (https://www.epa.gov/ground-water-and-drinking-water/national-primary-drinking-water-regulations).".split(/(?<= )/)) yield {choices:[{delta:{content:w}}]};
       })()}}}; }
   };`;
+// USGS daily flow statistics (tab-separated RDB), same row for every day of the year.
+function usgsStats(){
+  const head = ["agency_cd","site_no","parameter_cd","ts_id","loc_web_ds","month_nu","day_nu","begin_yr","end_yr","count_nu","p10_va","p25_va","p50_va","p75_va","p90_va"];
+  const rows = [];
+  for(let m=1;m<=12;m++) for(let d=1;d<=31;d++) rows.push(["USGS","03109500","00060","1","",m,d,"1915","2025","110","60","110","200","380","650"].join("\t"));
+  return ["# simulated", head.join("\t"), head.map(()=>"5s").join("\t"), ...rows].join("\n");
+}
 async function install(page, {ollama=true, webgpu=false, aiText="Vinyl chloride is a gas used to make PVC plastic. See ToxFAQs: Vinyl Chloride (https://wwwn.cdc.gov/TSP/ToxFAQs/ToxFAQsDetails.aspx?faqid=281&toxid=51). A made-up link: https://example.com/fake. Print this page and talk to a librarian for more help."}={}){
   if(webgpu) await page.addInitScript(WEBGPU_MOCK);
   await page.route(/air-quality-api\.open-meteo\.com/, r=>r.fulfill({json:air(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/\/\/api\.open-meteo\.com/, r=>r.fulfill({json:wx(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/waterservices\.usgs\.gov/, r=>r.fulfill({json:usgs(), headers:{"access-control-allow-origin":"*"}}));
+  await page.route(/waterservices\.usgs\.gov\/nwis\/stat/, r=>r.fulfill({body:usgsStats(), headers:{"content-type":"text/plain","access-control-allow-origin":"*"}}));
   await page.route(/127\.0\.0\.1:11434\/api\/tags/, r=> ollama ? r.fulfill({json:{models:[{name:"llama3.1:8b"}]}, headers:{"access-control-allow-origin":"*"}}) : r.abort());
   await page.route(/127\.0\.0\.1:11434\/api\/chat/, r=>{
     const words = (page.__aiText||aiText).split(/(?<= )/);

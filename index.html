@@ -334,6 +334,9 @@ th button{background:none;border:0;padding:0;cursor:pointer;text-transform:inher
 .ltile .s{font-size:.84rem;color:var(--ink-soft)}
 .aqi-chip{align-self:flex-start;font-size:.75rem;font-weight:700;display:inline-flex;gap:6px;align-items:center;padding:2px 10px;border:2px solid var(--line);border-radius:999px;background:var(--paper);margin-bottom:4px}
 .aqi-chip i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.4)}
+.light-chip{font-size:.82rem;padding:4px 12px}
+.light-chip i{width:14px;height:14px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .wind-arrow{display:inline-block;font-size:1.4rem;font-weight:800;color:var(--brand);align-self:flex-start;line-height:1}
 .lsec{margin-top:28px}
 .lgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
@@ -722,7 +725,7 @@ const GLOSSARY = [
    ex:"The kiosk's air numbers are computer-model estimates for the wider area, not readings from a monitor in East Palestine."},
   {id:"pm25", term:"PM2.5 (fine dust)", match:["pm2.5","pm 2.5","fine particles","fine dust","particulate"],
    def:"Tiny bits of dust, smoke and soot floating in the air, much thinner than a human hair. They are measured in micrograms per cubic meter of air (µg/m³).",
-   ex:"Smoke from fires and exhaust from vehicles add PM2.5 to the air."},
+   ex:"The colored light uses EPA's Air Quality Index ranges for PM2.5, averaged over 24 hours: green (Good) is up to 9.0 µg/m³, yellow (Moderate) is 9.1–35.4, and red (Unhealthy for sensitive groups or worse) is above 35.4. The numbers are computer-model estimates, not a local monitor."},
   {id:"ozone", term:"Ozone (at ground level)", match:["ozone"],
    def:"A gas that forms near the ground when sunlight reacts with pollution from cars and factories. It is usually higher on hot, sunny afternoons.",
    ex:"This is different from the ozone layer high up in the sky."},
@@ -731,7 +734,7 @@ const GLOSSARY = [
    ex:"Levels are often higher near busy roads."},
   {id:"cfs", term:"ft³/s (cubic feet per second)", match:["\\bcfs\\b","cubic feet per second","ft3/s","ft³/s","stream flow","streamflow"],
    def:"How much water flows past a point in a creek each second. One cubic foot of water is about 7½ gallons.",
-   ex:"After heavy rain the flow goes up. In dry weather it goes down."},
+   ex:"The colored light compares the flow with the same date in past years, using USGS records. Green means normal (between the 25th and 75th percentile). Yellow means below or above normal. Red means much below normal (lowest 10%) or much above normal (highest 10%), such as after heavy rain. Flow does not measure chemicals or water quality."},
   {id:"gage", term:"Gage height (water level)", match:["gage height","gauge height","water level"],
    def:"How high the water's surface is at the stream gauge, in feet. It is measured from a fixed point at the gauge, not from the bottom of the creek.",
    ex:"A rising gage height means the creek is getting higher."},
@@ -1827,7 +1830,7 @@ async function loadWater(){
 async function liveRefresh(){
   if(LIVE.loading) return;
   LIVE.loading = true; document.querySelectorAll(".live-wrap").forEach(el=>el.classList.add("refreshing"));
-  const jobs = {air:loadAir, wx:loadWeather, water:loadWater};
+  const jobs = {air:loadAir, wx:loadWeather, water:loadWater, flowStats:loadFlowStats};
   await Promise.all(Object.entries(jobs).map(async([k,fn])=>{ try{ await fn(); LIVE.err[k]=null; }catch(e){ LIVE.err[k]=e.message||"unavailable"; } }));
   LIVE.loading = false; LIVE.lastCheck = new Date(); LIVE.nextAt = Date.now()+LIVE.refreshMs;
   clearTimeout(LIVE.timer); LIVE.timer = setTimeout(liveRefresh, LIVE.refreshMs);
@@ -1857,6 +1860,47 @@ function liveCallout(){
 
 function tile(label, value, sub, extra="", term="", loading=false){ return `<div class="ltile${loading?" loading":""}">${extra}<span class="k">${label}</span><span class="v">${value}</span><span class="s">${sub}</span>${term?`<button class="info" data-term="${term}">What is this?</button>`:""}</div>`; }
 const cap = s => s ? s[0].toUpperCase()+s.slice(1) : s;
+/* Traffic-light ratings.
+   Fine dust: EPA's PM2.5 Air Quality Index ranges (Feb 2024 update), which are defined for a 24-hour average,
+   so the light uses the average of the last 24 hourly estimates. Green ≤ 9.0, yellow 9.1–35.4, red ≥ 35.5 µg/m³.
+   Creek flow: USGS daily percentiles for today's date (same day in every year on record).
+   Green 25th–75th (normal), yellow 10th–25th or 75th–90th, red below 10th or above 90th. */
+const LIGHT = {g:{sw:"#00e400", word:"Green"}, y:{sw:"#ffd400", word:"Yellow"}, r:{sw:"#ff2a1a", word:"Red"}, n:{sw:"#9aa3a8", word:"Gray"}};
+function lightChip(level, label){ return `<span class="aqi-chip light-chip l-${level}"><i style="background:${LIGHT[level].sw}"></i><span class="sr-only">${LIGHT[level].word} light: </span>${esc(label)}</span>`; }
+function pm25Avg24(series){ if(!series||!series.length) return null; const pts = series.slice(-24); return pts.reduce((a,p)=>a+p.v,0)/pts.length; }
+function pm25Light(series){
+  const avg = pm25Avg24(series); if(avg===null) return null;
+  const r = Math.round(avg*10)/10;
+  if(r<=9.0) return {level:"g", label:"Good", avg};
+  if(r<=35.4) return {level:"y", label:"Moderate", avg};
+  return {level:"r", label: r<=55.4 ? "Unhealthy for sensitive groups" : "Unhealthy", avg};
+}
+function flowLight(v){
+  const st = LIVE.flowStats; if(!st || v===null || v===undefined) return null;
+  if(v < st.p10) return {level:"r", label:"Much below normal"};
+  if(v < st.p25) return {level:"y", label:"Below normal"};
+  if(v <= st.p75) return {level:"g", label:"Normal for this date"};
+  if(v <= st.p90) return {level:"y", label:"Above normal"};
+  return {level:"r", label:"Much above normal"};
+}
+async function loadFlowStats(){
+  const today = new Date().toLocaleDateString("en-CA",{timeZone:NY});
+  if(LIVE.flowStats && LIVE.flowStats.date===today) return;
+  const [ , mm, dd] = today.split("-").map(Number);
+  const u = `https://waterservices.usgs.gov/nwis/stat/?format=rdb&sites=${LIVE.site}&statReportType=daily&statTypeCd=p10,p25,p50,p75,p90&parameterCd=00060`;
+  const txt = await (await fetchT(u)).text();
+  const lines = txt.split("\n").filter(l=>l && !l.startsWith("#"));
+  const head = lines[0].split("\t");
+  const col = n => head.indexOf(n);
+  const row = lines.slice(2).map(l=>l.split("\t")).find(c=>+c[col("month_nu")]===mm && +c[col("day_nu")]===dd);
+  if(!row) throw new Error("no statistics for today");
+  const g = n => parseFloat(row[col(n)]);
+  LIVE.flowStats = {date:today, p10:g("p10_va"), p25:g("p25_va"), p50:g("p50_va"), p75:g("p75_va"), p90:g("p90_va"), years:`${row[col("begin_yr")]}–${row[col("end_yr")]}`};
+  if(![LIVE.flowStats.p10,LIVE.flowStats.p25,LIVE.flowStats.p75,LIVE.flowStats.p90].every(isFinite)){ LIVE.flowStats=null; throw new Error("incomplete statistics"); }
+}
+function pm25LightSub(pl){ return pl ? `24-hour average ${fmtNum(Math.round(pl.avg*10)/10)} µg/m³ · EPA's ranges: green up to 9, yellow up to 35.4, red above` : ""; }
+function flowLightSub(fl){ const st=LIVE.flowStats; return fl&&st ? `Compared with this date in past years (${st.years}): normal is ${fmtNum(Math.round(st.p25))}–${fmtNum(Math.round(st.p75))} ft³/s` : "No comparison with past years is available right now"; }
+
 function aqiChip(v){ const c=aqiCat(v); return `<span class="aqi-chip"><i style="background:${c.sw}"></i>${esc(c.label)}</span>`; }
 const last = s => s && s.length ? s[s.length-1] : null;
 
@@ -1871,8 +1915,10 @@ function renderLiveStrip(){
     <div class="ltiles stagger">
       ${tile("Air quality", a?countHTML(a.current.us_aqi):"—", a?"Lower numbers mean cleaner air":"", a?aqiChip(a.current.us_aqi):"", "aqi", loading)}
       ${tile("Temperature", w?countHTML(Math.round(w.current.temperature_2m))+"°F":"—", w?`${cap(windWord(w.current.wind_speed_10m))} from the ${compassWord(w.current.wind_direction_10m)}`:"", "", "", loading)}
-      ${tile("Fine dust in the air", a?countHTML(a.current.pm2_5,1)+" <small>µg/m³</small>":"—", a?(trendHTML(trend(a.series.pm2_5,6),6)||"Computer-model estimate"):"", "", "pm25", loading)}
-      ${tile("Little Beaver Creek flow", lf?countHTML(Math.round(lf.v))+" <small>ft³/s</small>":"—", lf?(trendHTML(trend(flow,6),6)||"How much water is flowing"):(LIVE.err.water?"Gauge not reporting":""), "", "cfs", loading)}
+      ${(()=>{ const pl = a ? pm25Light(a.series.pm2_5) : null;
+        return tile("Fine dust in the air", a?countHTML(a.current.pm2_5,1)+" <small>µg/m³</small>":"—", a?(pl?`Based on the 24-hour average (${fmtNum(Math.round(pl.avg*10)/10)})`:"Computer-model estimate"):"", pl?lightChip(pl.level, pl.label):"", "pm25", loading); })()}
+      ${(()=>{ const fl = lf ? flowLight(lf.v) : null;
+        return tile("Little Beaver Creek flow", lf?countHTML(Math.round(lf.v))+" <small>ft³/s</small>":"—", lf?(fl?"Compared with this date in past years":(trendHTML(trend(flow,6),6)||"How much water is flowing")):(LIVE.err.water?"Gauge not reporting":""), lf?(fl?lightChip(fl.level, fl.label):lightChip("n","No comparison available")):"", "cfs", loading); })()}
     </div>`}
     <button class="btn btn-ghost" data-act="live" style="margin-top:14px">See charts and details →</button>`;
   if(LIVE.pendingAnim && !loading){ LIVE.pendingAnim = false; animateNumbers(el); }
@@ -1913,7 +1959,8 @@ function drawLive(){
     const c=a.current;
     html += `<div class="card aqi-card"><div class="aqi-top"><div><span class="k">Air Quality Index</span><span class="v">${countHTML(c.us_aqi)}</span>${aqiChip(c.us_aqi)}</div><button class="info" data-term="aqi">What is the Air Quality Index?</button></div>${aqiScaleHTML(c.us_aqi)}</div>
     <div class="ltiles stagger">
-      ${tile("Fine dust (PM2.5)", countHTML(c.pm2_5,1)+" <small>µg/m³</small>", trendHTML(trend(a.series.pm2_5,6),6)||"Tiny bits of dust and smoke", "", "pm25")}
+      ${(()=>{ const pl = pm25Light(a.series.pm2_5);
+        return tile("Fine dust (PM2.5)", countHTML(c.pm2_5,1)+" <small>µg/m³</small>", (pl?pm25LightSub(pl)+"<br>":"")+(trendHTML(trend(a.series.pm2_5,6),6)||""), pl?lightChip(pl.level, pl.label):"", "pm25"); })()}
       ${tile("Ozone", countHTML(c.ozone)+" <small>µg/m³</small>", trendHTML(trend(a.series.ozone,6),6)||"A gas that forms in sunlight", "", "ozone")}
       ${tile("Nitrogen dioxide", countHTML(c.nitrogen_dioxide,1)+" <small>µg/m³</small>", trendHTML(trend(a.series.nitrogen_dioxide,6),6)||"Mostly from vehicles and furnaces", "", "no2")}
     </div>
@@ -1957,6 +2004,8 @@ function drawLive(){
     const tiles = Object.keys(USGS_PARAMS).filter(k=>s[k]).map(k=>{
       const p=USGS_PARAMS[k], l=last(s[k]);
       const val = k==="00010" ? `${countHTML(l.v,1)}°C <small>(${Math.round(l.v*9/5+32)}°F)</small>` : k==="00060" ? `${countHTML(Math.round(l.v))} <small>${p.unit}</small>` : `${countHTML(l.v,2)} <small>${p.unit}</small>`;
+      if(k==="00060"){ const fl = flowLight(l.v);
+        return tile(p.name, val, flowLightSub(fl)+"<br>"+(trendHTML(trend(s[k],6),6)||""), fl?lightChip(fl.level, fl.label):lightChip("n","No comparison available"), plain[k][1]); }
       return tile(p.name, val, trendHTML(trend(s[k],6),6)||plain[k][0], "", plain[k][1]);
     }).join("");
     html += `<div class="ltiles stagger">${tiles}</div><div class="lgrid">`;
@@ -2093,7 +2142,9 @@ function livePlainSummary(){
   const a = LIVE.air, w = LIVE.wx, wt = LIVE.water;
   if(a){ const v=a.current.us_aqi; out.push(`The Air Quality Index is <b>${v}</b>, which is in EPA's <b>“${esc(aqiCat(v).label)}”</b> range.`); }
   if(w){ const c=w.current; out.push(`It is <b>${Math.round(c.temperature_2m)}°F</b> with ${windWord(c.wind_speed_10m)} from the ${compassWord(c.wind_direction_10m)}.`); }
-  if(wt && wt.series["00060"]){ const t=trend(wt.series["00060"],6); out.push(`Little Beaver Creek's flow is <b>${t?t.word:"being measured"}</b>${t?" compared with 6 hours ago":""}.`); }
+  if(a){ const pl=pm25Light(a.series.pm2_5); if(pl) out.push(`Fine dust over the last 24 hours is in EPA's <b>“${esc(pl.label)}”</b> range.`); }
+  if(wt && wt.series["00060"]){ const lf=last(wt.series["00060"]), fl=flowLight(lf.v), t=trend(wt.series["00060"],6);
+    out.push(fl ? `Little Beaver Creek's flow is <b>${esc(fl.label.toLowerCase())}</b>${fl.level==="g"?"":" for this time of year"}.` : `Little Beaver Creek's flow is <b>${t?t.word:"being measured"}</b>${t?" compared with 6 hours ago":""}.`); }
   return out.join(" ");
 }
 const COMPASS_WORDS = {N:"north",NNE:"north-northeast",NE:"northeast",ENE:"east-northeast",E:"east",ESE:"east-southeast",SE:"southeast",SSE:"south-southeast",S:"south",SSW:"south-southwest",SW:"southwest",WSW:"west-southwest",W:"west",WNW:"west-northwest",NW:"northwest",NNW:"north-northwest"};
@@ -2513,7 +2564,7 @@ $("#helpBtn").onclick = ()=>showTour(0);
   if(el && href) el.innerHTML = ` · <a class="layout-link" href="${href}" ${href.startsWith("http")?'target="_blank" rel="noopener"':""}>${LAYOUT==="guided"?"Switch to Layout A":"Try draft Layout B"}</a>`; })();
 
 /* expose for the test harness / evaluation scripts */
-window.KIOSK = {classify:(q)=>{const t=normalize(q); const c=tier3Gate(t); if(c) return {tier:3,cat:c.id}; if(TIER2.test(t)) return {tier:2}; const r=retrieve(t); return {tier:(r.score>=RELEVANCE_THRESHOLD||r.wantsLimits||findGlossary(t).length||r.absent.length)?1:0, r};}, ask, aiAsk, searchResources, AI, LIVE, state, LAYOUT, showTour, renderPerson, showIdleWarning};
+window.KIOSK = {classify:(q)=>{const t=normalize(q); const c=tier3Gate(t); if(c) return {tier:3,cat:c.id}; if(TIER2.test(t)) return {tier:2}; const r=retrieve(t); return {tier:(r.score>=RELEVANCE_THRESHOLD||r.wantsLimits||findGlossary(t).length||r.absent.length)?1:0, r};}, ask, aiAsk, searchResources, AI, LIVE, state, LAYOUT, showTour, renderPerson, showIdleWarning, pm25Light, flowLight};
 
 showAcknowledgement();
 </script>
