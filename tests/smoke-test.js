@@ -124,6 +124,21 @@ const FREE_FORM = ["how do I get my well tested", "where did the smoke go", "soi
   const back = await p3.evaluate(() => KIOSK.state.view);
   check(choices === 4 && links > 0 && back === "searchpage", "Layout B: big choices, search, and Back work");
 
+  // Creek history: new USGS statistics API first, old service as fallback, gray light if both fail.
+  for (const [mode, want] of [["new", "statistics API"], ["legacy", "WaterServices"], ["none", null]]) {
+    const pg = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+    pg.on("pageerror", (e) => errors.push(`stats ${mode}: ` + e.message));
+    await install(pg, { stats: mode });
+    await pg.goto("file://" + path.resolve(__dirname, "..", "index.html"));
+    await pg.click("#ackBtn");
+    await pg.waitForTimeout(1500);
+    const r = await pg.evaluate(() => ({ src: KIOSK.LIVE.flowStats && KIOSK.LIVE.flowStats.source, err: KIOSK.LIVE.flowStatsError,
+      chip: [...document.querySelectorAll("#liveStrip .light-chip")].map((c) => c.textContent).join(" | ") }));
+    const ok = want ? (r.src || "").includes(want) && r.chip.includes("Normal for this date") : !r.src && /statistics API/.test(r.err || "") && r.chip.includes("No comparison");
+    check(ok, `creek light with ${mode} statistics: ${r.chip}`);
+    await pg.close();
+  }
+
   check(errors.length === 0, "no page errors" + (errors.length ? ": " + errors.join("; ") : ""));
   await browser.close();
   console.log(failed ? `\n${failed} failure(s)` : "\nAll checks passed");

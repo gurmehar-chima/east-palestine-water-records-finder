@@ -1884,22 +1884,63 @@ function flowLight(v){
   return {level:"r", label:"Much above normal"};
 }
 async function loadFlowStats(){
-  const today = new Date().toLocaleDateString("en-CA",{timeZone:NY});
+  const today = new Date().toLocaleDateString("en-CA",{timeZone:NY});   // YYYY-MM-DD in New York time
   if(LIVE.flowStats && LIVE.flowStats.date===today) return;
-  const [ , mm, dd] = today.split("-").map(Number);
+  const md = today.slice(5), [mm, dd] = md.split("-").map(Number);
+  const errs = [];
+  let st = null;
+  try{ st = await flowStatsNew(md); st.source = "USGS Water Data statistics API"; }catch(e){ errs.push("statistics API: "+(e.message||e)); }
+  if(!st){ try{ st = await flowStatsLegacy(mm, dd); st.source = "USGS WaterServices statistics"; }catch(e){ errs.push("WaterServices: "+(e.message||e)); } }
+  LIVE.flowStatsError = st ? null : errs.join(" · ");
+  if(!st) throw new Error(LIVE.flowStatsError);
+  LIVE.flowStats = Object.assign(st, {date:today});
+}
+/* Current USGS statistics API (WaterServices /stat is being retired). Day-of-year percentiles for today's date.
+   The API is in beta, so the response is read flexibly: any object with computation "percentile" and either
+   {percentiles:[...], values:[...]} or {percentile, value}. */
+async function flowStatsNew(md){
+  const u = `https://api.waterdata.usgs.gov/statistics/v0/observationNormals?computation_type=percentile&start_date=${md}&end_date=${md}&monitoring_location_id=USGS-${LIVE.site}&parameter_code=00060`;
+  const res = await fetchT(u, 15000);
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const j = await res.json();
+  const rows = [];
+  (function walk(o){
+    if(Array.isArray(o)) return o.forEach(walk);
+    if(o && typeof o==="object"){
+      if(o.computation!==undefined) rows.push(o);
+      Object.values(o).forEach(v=>{ if(v && typeof v==="object") walk(v); });
+    }
+  })(j);
+  const p = {}; let count = null;
+  rows.filter(r=>String(r.computation).toLowerCase()==="percentile")
+      .filter(r=>!r.time_of_year || String(r.time_of_year)===md || String(r.time_of_year).endsWith("-"+md))
+      .forEach(r=>{
+        if(Array.isArray(r.percentiles) && Array.isArray(r.values)) r.percentiles.forEach((q,i)=>{ p[Math.round(+q)] = parseFloat(r.values[i]); });
+        else if(r.percentile!==undefined && r.value!==undefined) p[Math.round(+r.percentile)] = parseFloat(r.value);
+        if(r.sample_count && !count) count = r.sample_count;
+      });
+  if(![10,25,75,90].every(k=>isFinite(p[k]))) throw new Error(`no percentiles for ${md} (found ${rows.length} rows)`);
+  return {p10:p[10], p25:p[25], p50:p[50], p75:p[75], p90:p[90], years: count ? `${count} years of records` : ""};
+}
+/* Older WaterServices statistics service (tab-separated text). Kept as a fallback. */
+async function flowStatsLegacy(mm, dd){
   const u = `https://waterservices.usgs.gov/nwis/stat/?format=rdb&sites=${LIVE.site}&statReportType=daily&statTypeCd=p10,p25,p50,p75,p90&parameterCd=00060`;
-  const txt = await (await fetchT(u)).text();
+  const res = await fetchT(u);
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const txt = await res.text();
   const lines = txt.split("\n").filter(l=>l && !l.startsWith("#"));
-  const head = lines[0].split("\t");
+  const head = (lines[0]||"").split("\t");
   const col = n => head.indexOf(n);
+  if(col("p25_va")<0) throw new Error("unexpected response");
   const row = lines.slice(2).map(l=>l.split("\t")).find(c=>+c[col("month_nu")]===mm && +c[col("day_nu")]===dd);
   if(!row) throw new Error("no statistics for today");
   const g = n => parseFloat(row[col(n)]);
-  LIVE.flowStats = {date:today, p10:g("p10_va"), p25:g("p25_va"), p50:g("p50_va"), p75:g("p75_va"), p90:g("p90_va"), years:`${row[col("begin_yr")]}–${row[col("end_yr")]}`};
-  if(![LIVE.flowStats.p10,LIVE.flowStats.p25,LIVE.flowStats.p75,LIVE.flowStats.p90].every(isFinite)){ LIVE.flowStats=null; throw new Error("incomplete statistics"); }
+  const st = {p10:g("p10_va"), p25:g("p25_va"), p50:g("p50_va"), p75:g("p75_va"), p90:g("p90_va"), years:`${row[col("begin_yr")]}–${row[col("end_yr")]}`};
+  if(![st.p10,st.p25,st.p75,st.p90].every(isFinite)) throw new Error("incomplete statistics");
+  return st;
 }
 function pm25LightSub(pl){ return pl ? `24-hour average ${fmtNum(Math.round(pl.avg*10)/10)} µg/m³ · EPA's ranges: green up to 9, yellow up to 35.4, red above` : ""; }
-function flowLightSub(fl){ const st=LIVE.flowStats; return fl&&st ? `Compared with this date in past years (${st.years}): normal is ${fmtNum(Math.round(st.p25))}–${fmtNum(Math.round(st.p75))} ft³/s` : "No comparison with past years is available right now"; }
+function flowLightSub(fl){ const st=LIVE.flowStats; return fl&&st ? `Compared with this date in past years${st.years?` (${st.years})`:""}: normal is ${fmtNum(Math.round(st.p25))}–${fmtNum(Math.round(st.p75))} ft³/s` : "No comparison with past years is available right now"; }
 
 function aqiChip(v){ const c=aqiCat(v); return `<span class="aqi-chip"><i style="background:${c.sw}"></i>${esc(c.label)}</span>`; }
 const last = s => s && s.length ? s[s.length-1] : null;
@@ -2426,6 +2467,7 @@ function showStaff(){
       <div class="stat"><b>${Object.values(c.reports).reduce((a,b)=>a+b,0)}</b><span>Problem reports</span></div>
     </div>
     <p class="muted" style="font-size:.85rem;margin-top:8px">Reports: ${reports}. No question text, names, or addresses are kept. Corpus version ${CORPUS_VERSION}, updated ${longDate(CORPUS_UPDATED)}.</p>
+    <p class="muted" style="font-size:.85rem">Creek history for the flow light: ${LIVE.flowStats?`loaded from ${esc(LIVE.flowStats.source||"USGS")} (normal ${fmtNum(Math.round(LIVE.flowStats.p25))}–${fmtNum(Math.round(LIVE.flowStats.p75))} ft³/s)`:LIVE.flowStatsError?`not available: ${esc(LIVE.flowStatsError)}`:"not loaded yet"}</p>
     <div class="btn-row"><button class="btn btn-primary" data-close="1">Done</button></div>`);
   renderAIStatus();
   $("#ollamaTest").onclick = async ()=>{ AI.url = $("#ollamaUrl").value.trim()||AI.url; AI.model = $("#ollamaModel").value.trim()||AI.model; AI.provider=null; await aiCheck(); const m=$("#ollamaModel"); if(m) m.value = AI.model; };

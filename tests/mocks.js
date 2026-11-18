@@ -26,12 +26,19 @@ function usgsStats(){
   for(let m=1;m<=12;m++) for(let d=1;d<=31;d++) rows.push(["USGS","03109500","00060","1","",m,d,"1915","2025","110","60","110","200","380","650"].join("\t"));
   return ["# simulated", head.join("\t"), head.map(()=>"5s").join("\t"), ...rows].join("\n");
 }
-async function install(page, {ollama=true, webgpu=false, aiText="Vinyl chloride is a gas used to make PVC plastic. See ToxFAQs: Vinyl Chloride (https://wwwn.cdc.gov/TSP/ToxFAQs/ToxFAQsDetails.aspx?faqid=281&toxid=51). A made-up link: https://example.com/fake. Print this page and talk to a librarian for more help."}={}){
+// USGS statistics API (observationNormals), day-of-year percentiles for today's date in New York.
+function usgsStatsNew(){
+  const md = new Date().toLocaleDateString("en-CA",{timeZone:"America/New_York"}).slice(5);
+  return {type:"FeatureCollection", features:[{type:"Feature", properties:{monitoring_location_id:"USGS-03109500", data:[{parameter_code:"00060",
+    values:[{time_of_year:md, time_of_year_type:"day_of_year", computation:"percentile", percentiles:["5","10","25","50","75","90","95"], values:["40","60","110","200","380","650","900"], sample_count:110}]}]}}]};
+}
+async function install(page, {ollama=true, webgpu=false, stats="new", aiText="Vinyl chloride is a gas used to make PVC plastic. See ToxFAQs: Vinyl Chloride (https://wwwn.cdc.gov/TSP/ToxFAQs/ToxFAQsDetails.aspx?faqid=281&toxid=51). A made-up link: https://example.com/fake. Print this page and talk to a librarian for more help."}={}){
   if(webgpu) await page.addInitScript(WEBGPU_MOCK);
   await page.route(/air-quality-api\.open-meteo\.com/, r=>r.fulfill({json:air(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/\/\/api\.open-meteo\.com/, r=>r.fulfill({json:wx(), headers:{"access-control-allow-origin":"*"}}));
   await page.route(/waterservices\.usgs\.gov/, r=>r.fulfill({json:usgs(), headers:{"access-control-allow-origin":"*"}}));
-  await page.route(/waterservices\.usgs\.gov\/nwis\/stat/, r=>r.fulfill({body:usgsStats(), headers:{"content-type":"text/plain","access-control-allow-origin":"*"}}));
+  await page.route(/waterservices\.usgs\.gov\/nwis\/stat/, r=> stats==="none" ? r.fulfill({status:404, body:"Not found"}) : r.fulfill({body:usgsStats(), headers:{"content-type":"text/plain","access-control-allow-origin":"*"}}));
+  await page.route(/api\.waterdata\.usgs\.gov\/statistics/, r=> stats==="new" ? r.fulfill({json:usgsStatsNew(), headers:{"access-control-allow-origin":"*"}}) : r.fulfill({status:503, body:"unavailable"}));
   await page.route(/127\.0\.0\.1:11434\/api\/tags/, r=> ollama ? r.fulfill({json:{models:[{name:"llama3.1:8b"}]}, headers:{"access-control-allow-origin":"*"}}) : r.abort());
   await page.route(/127\.0\.0\.1:11434\/api\/chat/, r=>{
     const words = (page.__aiText||aiText).split(/(?<= )/);
